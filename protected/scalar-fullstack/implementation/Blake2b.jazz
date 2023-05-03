@@ -1,0 +1,476 @@
+/*-----Updates Buffer-----*/
+inline fn addFullBlock(reg u64 input) -> stack u64[16] {
+	reg u64 i temp;
+	stack u64[16] buffer;
+	
+	i=0;
+
+	while( i < 16) {
+		temp = [input + i*8];
+		buffer[(int) i]= temp; 
+		i += 1;
+	}
+	return buffer;  //Full tested and Correct
+}
+
+
+inline fn addLastBlock(reg u64 input inlen) -> stack u64[16] {
+	reg u64 i i8 counter temp mask; 
+	reg u8 temp_u8;
+	stack u64[16] buffer;
+
+	i=0;
+	i8 = 8;
+	counter = 0;
+
+	while(i8 <= inlen){    //has some u64 left
+		temp = [input + 8*i]; 
+		buffer[(int)i] = temp;
+		i += 1;
+		counter += 8; //counts every u64 left
+		inlen -= 8;
+	}
+
+	input += counter;
+	mask = 0;
+
+	while(inlen > 0) { //some u8 left 
+		inlen -=1 ;
+		mask <<= 8;
+		
+		temp_u8 = (u8)[input + inlen]; //get u8
+		
+		temp = (64u)temp_u8;
+		
+		mask ^= temp;
+	}
+
+	buffer[(int)i] = mask; //put the last bytes in buffer
+	i += 1;
+	
+	while(i < 16){ // No more bytes left, fill the buffer with 0's;
+		buffer[(int)i] = 0x0;
+		i += 1;
+	}
+	
+	return buffer;
+}
+
+/*-----Updates Buffer-----*/
+
+
+/*-----UPDATE V-----*/
+inline fn array_v(stack u64[8] h, stack u64[2] t, inline int last) -> stack u64[16] {
+	stack u64[16] v; 
+	
+	reg u64 temp t0 t1;
+	
+	inline int i;
+
+	for i = 0 to 8 {  // fill first 8 positions [0 .. 7] of array v with array h
+		temp = h[i];
+		v[i] = temp; 
+	}
+
+	temp = 0x6a09e667f3bcc908; v[8] = temp; 
+	temp = 0xbb67ae8584caa73b; v[9] = temp; 
+	temp = 0x3c6ef372fe94f82b; v[10] = temp; 
+	temp = 0xa54ff53a5f1d36f1; v[11] = temp;
+	temp = 0x510e527fade682d1; v[12] = temp; 
+	temp = 0x9b05688c2b3e6c1f; v[13] = temp; 
+	temp = 0x1f83d9abfb41bd6b; v[14] = temp; 
+	temp = 0x5be0cd19137e2179; v[15] = temp;
+
+	t0 = t[0] ; v[12] ^= t0;
+	t1 = t[1] ; v[13] ^= t1;
+	
+
+	if(last == 1) {
+		v[14] ^= 0xFFFFFFFFFFFFFFFF;
+	}
+
+	return v;
+}
+
+/*-----UPDATE V-----*/
+
+
+/*-----BLAKE FUNCTIONS-----*/
+
+/* Mix Function  */
+inline fn doubleG(stack u64[16] v, inline int a0 b0 c0 d0, reg u64 x0 y0, inline int a1 b1 c1 d1, reg u64 x1 y1) -> stack u64[16] {
+	reg u64 v_a, v_b, v_c, v_d;
+	
+	v_b = v[b0] ; v[a0] += v_b ; v[a0] += x0;
+	v_b = v[b1] ; v[a1] += v_b ; v[a1] += x1;
+
+	v_a = v[a0] ; v_d = v[d0] ; v_d ^= v_a ; _,_,v_d = #ROR_64(v_d, 32); v[d0] = v_d;
+	v_a = v[a1] ; v_d = v[d1] ; v_d ^= v_a ; _,_,v_d = #ROR_64(v_d, 32); v[d1] = v_d;
+	
+
+	v_d = v[d0] ; v[c0] += v_d;
+	v_d = v[d1] ; v[c1] += v_d;
+
+	v_b = v[b0] ; v_c = v[c0] ; v_b ^= v_c ; _,_,v_b = #ROR_64(v_b, 24); v[b0] = v_b;
+	v_b = v[b1] ; v_c = v[c1] ; v_b ^= v_c ; _,_,v_b = #ROR_64(v_b, 24); v[b1] = v_b;
+
+	v_b = v[b0] ; v[a0] += v_b ; v[a0] += y0;
+	v_b = v[b1] ; v[a1] += v_b ; v[a1] += y1;
+
+	v_a = v[a0] ; v_d = v[d0] ; v_d ^= v_a ; _,_,v_d = #ROR_64(v_d, 16); v[d0] = v_d;
+	v_a = v[a1] ; v_d = v[d1] ; v_d ^= v_a ; _,_,v_d = #ROR_64(v_d, 16); v[d1] = v_d;
+
+	v_d = v[d0] ; v[c0] += v_d;
+	v_d = v[d1] ; v[c1] += v_d;
+
+	v_b = v[b0] ; v_c = v[c0] ; v_b ^= v_c ; _,_,v_b = #ROR_64(v_b, 63); v[b0] = v_b;
+	v_b = v[b1] ; v_c = v[c1] ; v_b ^= v_c ; _,_,v_b = #ROR_64(v_b, 63); v[b1] = v_b;
+
+	return v;
+}
+
+
+/* Compressions */
+inline fn compressMix(stack u64[16] buffer , stack u64[16]v ) -> stack u64[16] {
+	// i = 0
+	v = doubleG(v, 0, 4,  8, 12, buffer[0], buffer[1], 
+		           1, 5,  9, 13, buffer[2], buffer[3]);
+
+	v = doubleG(v, 2, 6, 10, 14, buffer[4], buffer[5],
+				   3, 7, 11, 15, buffer[6], buffer[7]);
+	
+	v = doubleG(v, 0, 5, 10, 15, buffer[8], buffer[9],
+			       1, 6, 11, 12, buffer[10], buffer[11]);  
+	
+	v = doubleG(v, 2, 7,  8, 13, buffer[12], buffer[13], 
+		           3, 4,  9, 14, buffer[14], buffer[15]);
+	
+
+	// i = 1	 
+	v = doubleG(v, 0, 4,  8, 12, buffer[14], buffer[10], 
+				   1, 5,  9, 13, buffer[4], buffer[8]);
+	
+	v = doubleG(v, 2, 6, 10, 14, buffer[9], buffer[15], 
+				   3, 7, 11, 15, buffer[13], buffer[6]);
+
+	v = doubleG(v, 0, 5, 10, 15, buffer[1], buffer[12], 
+				   1, 6, 11, 12, buffer[0], buffer[2]);
+
+	v = doubleG(v, 2, 7,  8, 13, buffer[11], buffer[7], 
+		  		   3, 4,  9, 14, buffer[5], buffer[3]);
+
+
+	// i = 2	 
+	v = doubleG(v, 0, 4,  8, 12, buffer[11], buffer[8], 
+		           1, 5,  9, 13, buffer[12], buffer[0]);
+
+	v = doubleG(v, 2, 6, 10, 14, buffer[5], buffer[2], 
+		           3, 7, 11, 15, buffer[15], buffer[13]);
+
+	v = doubleG(v, 0, 5, 10, 15, buffer[10], buffer[14], 
+		           1, 6, 11, 12, buffer[3], buffer[6]);
+
+	v = doubleG(v, 2, 7,  8, 13, buffer[7], buffer[1], 
+		           3, 4,  9, 14, buffer[9], buffer[4]);
+
+
+	// i = 3	 
+	v = doubleG(v, 0, 4,  8, 12, buffer[7], buffer[9], 
+		           1, 5,  9, 13, buffer[3], buffer[1]);
+	
+	v = doubleG(v, 2, 6, 10, 14, buffer[13], buffer[12], 
+		           3, 7, 11, 15, buffer[11], buffer[14]);
+	
+	v = doubleG(v, 0, 5, 10, 15, buffer[2], buffer[6], 
+		           1, 6, 11, 12, buffer[5], buffer[10]);
+	
+	v = doubleG(v, 2, 7,  8, 13, buffer[4], buffer[0], 
+		           3, 4,  9, 14, buffer[15], buffer[8]);
+
+
+
+	// i = 4	 
+	v = doubleG(v, 0, 4,  8, 12, buffer[9], buffer[0], 
+		           1, 5,  9, 13, buffer[5], buffer[7]);
+
+	v = doubleG(v, 2, 6, 10, 14, buffer[2], buffer[4], 
+		           3, 7, 11, 15, buffer[10], buffer[15]);
+
+	v = doubleG(v, 0, 5, 10, 15, buffer[14], buffer[1], 
+		           1, 6, 11, 12, buffer[11], buffer[12]);
+
+	v = doubleG(v, 2, 7,  8, 13, buffer[6], buffer[8], 
+		           3, 4,  9, 14, buffer[3], buffer[13]);
+
+
+	// i = 5	 
+	v = doubleG(v, 0, 4,  8, 12, buffer[2], buffer[12], 
+		           1, 5,  9, 13, buffer[6], buffer[10]);
+
+	v = doubleG(v, 2, 6, 10, 14, buffer[0], buffer[11], 
+		           3, 7, 11, 15, buffer[8], buffer[3]);
+	
+	v = doubleG(v, 0, 5, 10, 15, buffer[4], buffer[13], 
+		           1, 6, 11, 12, buffer[7], buffer[5]);
+	
+	v = doubleG(v, 2, 7,  8, 13, buffer[15], buffer[14], 
+		           3, 4,  9, 14, buffer[1], buffer[9]);
+
+
+
+	// i = 6	 
+	v = doubleG(v, 0, 4,  8, 12, buffer[12], buffer[5], 
+		           1, 5,  9, 13, buffer[1], buffer[15]);
+
+	v = doubleG(v, 2, 6, 10, 14, buffer[14], buffer[13], 
+		           3, 7, 11, 15, buffer[4], buffer[10]);
+	
+	v = doubleG(v, 0, 5, 10, 15, buffer[0], buffer[7], 
+		           1, 6, 11, 12, buffer[6], buffer[3]);
+	
+	v = doubleG(v, 2, 7,  8, 13, buffer[9], buffer[2], 
+		           3, 4,  9, 14, buffer[8], buffer[11]);
+
+
+
+	// i = 7	 
+	v = doubleG(v, 0, 4,  8, 12, buffer[13], buffer[11], 
+		           1, 5,  9, 13, buffer[7], buffer[14]);
+	
+	v = doubleG(v, 2, 6, 10, 14, buffer[12], buffer[1], 
+		           3, 7, 11, 15, buffer[3], buffer[9]);
+	
+	v = doubleG(v, 0, 5, 10, 15, buffer[5], buffer[0], 
+		           1, 6, 11, 12, buffer[15], buffer[4]);
+	
+	v = doubleG(v, 2, 7,  8, 13, buffer[8], buffer[6], 
+		           3, 4,  9, 14, buffer[2], buffer[10]);
+
+
+	// i = 8	 
+	v = doubleG(v, 0, 4,  8, 12, buffer[6], buffer[15], 
+		           1, 5,  9, 13, buffer[14], buffer[9]);
+	
+	v = doubleG(v, 2, 6, 10, 14, buffer[11], buffer[3], 
+		           3, 7, 11, 15, buffer[0], buffer[8]);
+	
+	v = doubleG(v, 0, 5, 10, 15, buffer[12], buffer[2], 
+		           1, 6, 11, 12, buffer[13], buffer[7]);
+	
+	v = doubleG(v, 2, 7,  8, 13, buffer[1], buffer[4], 
+		           3, 4,  9, 14, buffer[10], buffer[5]);
+
+
+
+	//i = 9	 
+	v = doubleG(v, 0, 4,  8, 12, buffer[10], buffer[2], 
+		           1, 5,  9, 13, buffer[8], buffer[4]);
+	
+	v = doubleG(v, 2, 6, 10, 14, buffer[7], buffer[6], 
+		           3, 7, 11, 15, buffer[1], buffer[5]);
+	
+	v = doubleG(v, 0, 5, 10, 15, buffer[15], buffer[11], 
+		           1, 6, 11, 12, buffer[9], buffer[14]);
+	
+	v = doubleG(v, 2, 7,  8, 13, buffer[3], buffer[12], 
+		           3, 4,  9, 14, buffer[13], buffer[0]);
+
+
+	// i = 10 
+	v = doubleG(v, 0, 4,  8, 12, buffer[0], buffer[1], 
+		           1, 5,  9, 13, buffer[2], buffer[3]);
+
+	v = doubleG(v, 2, 6, 10, 14, buffer[4], buffer[5],
+				   3, 7, 11, 15, buffer[6], buffer[7]);
+	
+	v = doubleG(v, 0, 5, 10, 15, buffer[8], buffer[9],
+			       1, 6, 11, 12, buffer[10], buffer[11]);  
+	
+	v = doubleG(v, 2, 7,  8, 13, buffer[12], buffer[13], 
+		           3, 4,  9, 14, buffer[14], buffer[15]);
+	
+
+	// i = 11	 
+	v = doubleG(v, 0, 4,  8, 12, buffer[14], buffer[10], 
+				   1, 5,  9, 13, buffer[4], buffer[8]);
+	
+	v = doubleG(v, 2, 6, 10, 14, buffer[9], buffer[15], 
+				   3, 7, 11, 15, buffer[13], buffer[6]);
+
+	v = doubleG(v, 0, 5, 10, 15, buffer[1], buffer[12], 
+				   1, 6, 11, 12, buffer[0], buffer[2]);
+
+	v = doubleG(v, 2, 7,  8, 13, buffer[11], buffer[7], 
+		  		   3, 4,  9, 14, buffer[5], buffer[3]);
+
+	return v;
+}
+
+
+inline fn compression(stack u64[16] buffer, stack u64[8] h, stack u64[2] t, inline int last) -> stack u64[8] {
+	stack u64[16] v;
+	reg u64[8] rh;
+	reg u64 vi vi_plus8;
+	
+	inline int i;
+
+	v = array_v(h,t,last);
+	
+	v = compressMix(buffer,v);
+	
+	for i = 0 to 8 {	
+		vi = v[i]; vi_plus8 = v[i+8];
+
+		h[i] ^= vi; h[i] ^= vi_plus8;
+	}
+
+	return h;
+}
+
+/*
+inline fn updateKey( reg u64 key keylen inlen, stack u64[8] h, stack u64[2] t) -> stack u64[8] {
+	stack u64[16] buffer;
+
+	if(keylen > 0) { //some remain bytes
+		buffer = addLastBlock(key, keylen);
+		
+		if(inlen == 0){
+			h  = compression(buffer,h,t,1);
+		}
+		else{
+			h = compression(buffer,h,t,0);
+		}
+
+	}
+	
+	return h;
+}
+*/
+
+/*  Initialize arrays ** h ** and ** t **  */
+inline fn init(reg u64 outlen keylen key inlen) -> stack u64[8], stack u64[2] {
+	stack u64[16] buffer;
+	stack u64[8] h ;
+	stack u64[2] t ;
+	
+	reg u64 h0_xor temp;
+
+	temp = 0x6a09e667f3bcc908; h[0] = temp; 
+	temp = 0xbb67ae8584caa73b; h[1] = temp; 
+	temp = 0x3c6ef372fe94f82b; h[2] = temp; 
+	temp = 0xa54ff53a5f1d36f1; h[3] = temp;
+	temp = 0x510e527fade682d1; h[4] = temp; 
+	temp = 0x9b05688c2b3e6c1f; h[5] = temp; 
+	temp = 0x1f83d9abfb41bd6b; h[6] = temp; 
+	temp = 0x5be0cd19137e2179; h[7] = temp;
+
+	h0_xor = keylen; 
+	h0_xor <<= 8; 
+	h0_xor ^= 0x01010000; 
+	h0_xor ^= outlen; 
+ 
+	h[0] ^= h0_xor; 
+
+	_ = #init_msf();					  
+	if (keylen > 0 ){
+		t[0] = 128; 
+		t[1] = 0;	
+	
+		if(keylen > 0) { //some remain bytes
+			buffer = addLastBlock(key, keylen);
+		
+			if(inlen == 0){
+				h  = compression(buffer,h,t,1);
+			}
+			else{
+				h = compression(buffer,h,t,0);
+			}
+
+		}
+	}
+	else {
+		t[0] = 0; t[1] = 0;
+	}
+
+	return h, t;
+}
+
+
+inline fn update( reg u64 input inlen,  stack u64[8] h, stack u64[2] t) -> stack u64[8] {
+	stack u64[16] buffer;
+	reg u64 sum_t;
+
+	_ = #init_msf();
+	while(inlen >= 128) { //blocks multiple of 16
+		buffer= addFullBlock(input);
+		
+		inlen -= 128;
+		input += 128;
+		
+		t[0] += 128; // Add to t[0] the number of bytes read : 16 * 8 bytes [ 8 bytes == 64 bits ] = 128;
+		
+		if(inlen == 0) { //last block
+			h = compression(buffer,h,t,1);		
+		}
+		else{ //not the last block
+			h = compression(buffer,h,t,0);
+		}
+	}
+
+	if(inlen > 0) { //some remain bytes
+		sum_t = inlen;
+		buffer = addLastBlock(input, inlen);
+		t[0] += sum_t; // Add to t[0] the remaining bytes;
+		
+		h  = compression (buffer,h,t,1);
+	}
+	
+	return h;
+}
+
+
+inline fn final(reg u64 out outlen, stack u64[8] h) {
+	reg u64 x y h_x i;
+	
+	i = 0;
+
+	_ = #init_msf();
+	while(i < outlen) {
+		x = i;
+		
+		x >>= 3;	
+		
+		y = i; 
+		y &= 7; 
+		y *= 8;
+		
+		h_x = h[(int) x]; // <- 
+	
+		h_x >>= y;
+		
+		h_x &= 0xFF;
+		
+		[out + i] = h_x;
+		
+		i+=1;
+	}
+}
+
+/*-----BLAKE FUNCTIONS-----*/
+
+
+export fn blake2b(#transient reg u64 in inlen, reg u64 out outlen , reg u64 key keylen) {
+
+	reg u64 outlenCpy;
+	stack u64[8] h; 
+
+	stack u64[2] t;
+
+	outlenCpy = outlen;
+
+	h,t = init(outlenCpy, keylen, key, inlen);
+
+	h = update(in, inlen, h, t);
+
+	final(out, outlenCpy, h);	
+}

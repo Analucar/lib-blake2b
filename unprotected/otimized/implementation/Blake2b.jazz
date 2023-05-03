@@ -1,0 +1,839 @@
+/* some macros to access state components... */
+
+#define B(base,x) [base + 8*(x)]
+#define B8(base,x8) (u8)[base + (x8)]
+#define B128(base,x) (u128)[base + 16*(x)]
+
+#define H(base,x) [base + 8*(16+x)]
+#define H8(base,x)  [base + (128+x)]
+#define H128(base,x) (u128)[base + 16*(8+x)]
+
+#define T(base,x) [base + 8*(24+x)]
+#define T128(base) (u128)[base + 8*24]
+#define C(base)   [base + 8*26]
+#define OL(base)  [base + 8*27]
+
+/*
+[ 0 : 15] -> buffer
+[16: 23] -> h
+[24,25] -> t
+[26] -> C
+[27] -> OL
+*/
+
+#define STACK_RETURN_ADDRESS() #[returnaddress="stack"]
+
+u128 iv0 = 0xbb67ae8584caa73b6a09e667f3bcc908;
+u128 iv2 = 0xa54ff53a5f1d36f13c6ef372fe94f82b; 
+u128 iv4 = 0x9b05688c2b3e6c1f510e527fade682d1; 
+u128 iv6 = 0x5be0cd19137e21791f83d9abfb41bd6b;
+
+u128 r24 = (16u8)[10, 9, 8, 15, 14, 13, 12, 11, 2, 1, 0, 7, 6, 5, 4, 3];
+u128 r16 = (16u8)[9, 8, 15,14,13,12,11,10,1,0,7,6,5,4,3,2];
+
+u128 zero = 0x0;
+
+
+inline fn memcpy(reg u64 dest source size) {
+  reg u64 i size8 tmp8;
+  reg u8 tmp;
+  
+  size8 = size;
+  size8 >>= 3;
+  i = 0;
+  while(i < size8) {
+    tmp8 = [source + 8*i];
+    [dest + 8*i] = tmp8;
+    i += 1;
+  }
+  i <<= 3;
+  while (i < size) {
+    tmp = (u8) [source + i];
+    (u8) [dest + i] = tmp;
+    i += 1;
+  }
+}
+
+
+inline fn memzero(reg u64 dest size) {
+  reg u64 i size8;
+  
+  size8 = size;
+  size8 >>= 3;
+  i = 0;
+  while(i < size8) {
+    [dest + 8*i] = 0;
+    i += 1;
+  }
+  i <<= 3;
+  while (i < size) {
+    (u8) [dest + i] = 0;
+    i += 1;
+  }
+}
+
+inline fn fillup0Buff(reg u64 buf buflen) {
+  reg u64 i n8 t;
+
+  buf += buflen;
+  t = 128;
+  t -= buflen;
+
+  memzero( buf, t );
+
+}
+
+inline fn fillBuff(reg u64 buf buflen input inputlen) -> reg u64 {
+  reg u64 n;
+
+  // n = min(buflen, inputlen);
+  n = buflen;
+  n = inputlen if inputlen < buflen;
+
+  memcpy( buf, input, n);
+
+  return n;
+}
+
+inline fn shuffle(inline int a b c d) -> inline int {
+  inline int r;
+  r = a*64 + b*16 + c*4 + d;
+  return r;
+}
+
+inline fn __mm_roti_epi64_sse3(reg u128 x, inline int c) -> reg u128 {
+  reg u128 r t0 t1;
+  inline int t;
+  
+  if(c == -32){
+    t = shuffle(2,3,0,1);
+    r  = #VPSHUFD(x,t);
+  }
+  
+  if(c == -24){
+    r = #VPSHUFB(x,r24);
+  }
+  
+  if(c == -16){
+    r = #VPSHUFB(x,r16);
+  }
+
+  if(c == -63){
+    t0 = #VPSRL_2u64(x,63);
+    t1 = #VPADD_2u64(x,x);
+    r = #VPXOR(t0, t1);
+  }
+
+  return r;
+}
+
+inline fn DIAGONALIZE(reg u128 row1l row2l row3l row4l row1h row2h row3h row4h) 
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  
+  reg u128 t0 t1 tmp;
+  
+  t0 = row4l; t1 = row2l;
+  row4l = row3l; row3l = row3h; row3h = row4l;
+
+  tmp = #VPUNPCKL_2u64(t0,t0);
+  row4l = #VPUNPCKH_2u64(row4h,tmp);
+  
+  tmp = #VPUNPCKL_2u64(row4h,row4h);
+  row4h = #VPUNPCKH_2u64(t0,tmp);
+
+  tmp = #VPUNPCKL_2u64(row2h,row2h);
+  row2l = #VPUNPCKH_2u64(row2l,tmp);
+
+  tmp = #VPUNPCKL_2u64(t1,t1);
+  row2h = #VPUNPCKH_2u64(row2h,tmp);
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+
+}
+
+inline fn UNDIAGONALIZE(reg u128 row1l row2l row3l row4l row1h row2h row3h row4h) 
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  reg u128 t0 t1 tmp;
+
+  t0 = row3l; 
+  row3l = row3h; row3h = t0;
+  t0 = row2l; t1 = row4l;
+  
+
+  tmp = #VPUNPCKL_2u64(row2l, row2l);
+  row2l = #VPUNPCKH_2u64(row2h, tmp);
+
+  tmp = #VPUNPCKL_2u64(row2h, row2h);
+  row2h = #VPUNPCKH_2u64(t0, tmp);
+
+  tmp = #VPUNPCKL_2u64(row4h, row4h);
+  row4l = #VPUNPCKH_2u64(row4l, tmp);
+
+  tmp = #VPUNPCKL_2u64(t1, t1);
+  row4h = #VPUNPCKH_2u64(row4h, tmp);
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+inline fn G1(reg u128 row1l row2l row3l row4l row1h row2h row3h row4h b0 b1)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+
+  row1l = #VPADD_2u64(row1l,b0); row1l = #VPADD_2u64(row1l, row2l);
+  row1h = #VPADD_2u64(row1h,b1); row1h = #VPADD_2u64(row1h, row2h); 
+  
+  row4l = #VPXOR(row4l, row1l);
+  row4h = #VPXOR(row4h, row1h);
+  row4l = __mm_roti_epi64_sse3(row4l, -32);
+  row4h = __mm_roti_epi64_sse3(row4h, -32);
+  
+  row3l = #VPADD_2u64(row3l,row4l);
+  row3h = #VPADD_2u64(row3h,row4h);
+  
+  row2l = #VPXOR(row2l, row3l); 
+  row2h = #VPXOR(row2h, row3h);
+
+  row2l = __mm_roti_epi64_sse3(row2l, -24);
+  row2h = __mm_roti_epi64_sse3(row2h, -24);
+  
+  return row1l, row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+inline fn G2(reg u128 row1l row2l row3l row4l row1h row2h row3h row4h b0 b1)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  
+  row1l = #VPADD_2u64(row1l,b0); row1l = #VPADD_2u64(row1l, row2l);
+  row1h = #VPADD_2u64(row1h,b1); row1h = #VPADD_2u64(row1h, row2h);
+  
+  row4l = #VPXOR(row4l, row1l); 
+  row4h = #VPXOR(row4h, row1h);
+  row4l = __mm_roti_epi64_sse3(row4l, -16);
+  row4h = __mm_roti_epi64_sse3(row4h, -16);
+  
+  row3l = #VPADD_2u64(row3l,row4l);
+  row3h = #VPADD_2u64(row3h,row4h);
+  
+  row2l = #VPXOR(row2l, row3l); 
+  row2h = #VPXOR(row2h, row3h); 
+  row2l = __mm_roti_epi64_sse3(row2l, -63);
+  row2h = __mm_roti_epi64_sse3(row2h, -63);
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+} 
+
+
+inline fn BLAKE2_ROUND_0(reg u64 ctxt, reg u128 row1l row2l row3l row4l row1h row2h row3h row4h) 
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  
+  reg u128 m0 m1 b0 b1;
+  
+  m0 = B128(ctxt,0); m1 = B128(ctxt,1);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,2); m1 = B128(ctxt,3);  b1 = #VPUNPCKL_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h = 
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  m0 = B128(ctxt,0); m1 = B128(ctxt,1);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,2); m1 = B128(ctxt,3);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h = 
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    DIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+  
+  m0 = B128(ctxt,4); m1 = B128(ctxt,5);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,6); m1 = B128(ctxt,7);  b1 = #VPUNPCKL_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  m0 = B128(ctxt,4); m1 = B128(ctxt,5);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,6); m1 = B128(ctxt,7);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1); //se puser a linha acima em comentário, compila na mesma
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    UNDIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+
+inline fn BLAKE2_ROUND_1(reg u64 ctxt, reg u128 row1l row2l row3l row4l row1h row2h row3h row4h)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  reg u128 m0 m1 b0 b1;
+  inline int t0;
+
+  //LOAD_MSG_1_1
+  m0 = B128(ctxt,7); m1 = B128(ctxt,2);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,4); m1 = B128(ctxt,6);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_1_2
+  m0 = B128(ctxt,5); m1 = B128(ctxt,4);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,3); m1 = B128(ctxt,7);  b1 = #VPALIGNR_128(m0,m1,8);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    DIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+  
+  //LOAD_MSG_1_3
+  m0 = B128(ctxt,0); t0 = shuffle(1,0,3,2); b0 = #VPSHUFD(m0,t0);
+  m0 = B128(ctxt,5); m1 = B128(ctxt,2);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_1_4
+  m0 = B128(ctxt,6); m1 = B128(ctxt,1);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,3); m1=B128(ctxt,1); b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    UNDIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+inline fn BLAKE2_ROUND_2(reg u64 ctxt, reg u128 row1l row2l row3l row4l row1h row2h row3h row4h)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  reg u128 m0 m1 b0 b1;
+
+  //LOAD_MSG_2_1
+  m0 = B128(ctxt,6); m1 = B128(ctxt,5);  b0 = #VPALIGNR_128(m0,m1,8);
+  m0 = B128(ctxt,2); m1 = B128(ctxt,7);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_2_2
+  m0 = B128(ctxt,4); m1 = B128(ctxt,0);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,1); m1 = B128(ctxt,6);  b1 = #VPBLEND_8u16(m0,m1,0xF0);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    DIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+  
+  //LOAD_MSG_2_3
+  m0 = B128(ctxt,5); m1 = B128(ctxt,1);  b0 = #VPBLEND_8u16(m0,m1,0xF0);
+  m0 = B128(ctxt,3); m1 = B128(ctxt,4);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_2_4
+  m0 = B128(ctxt,7); m1 = B128(ctxt,3);  b0 =#VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,2); m1 = B128(ctxt,0);  b1 =#VPALIGNR_128(m0,m1,8);
+
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    UNDIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+
+   return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+inline fn BLAKE2_ROUND_3(reg u64 ctxt, reg u128 row1l row2l row3l row4l row1h row2h row3h row4h)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  reg u128 m0 m1 b0 b1;
+
+  //LOAD_MSG_3_1
+  m0 = B128(ctxt,3); m1 = B128(ctxt,1);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,6); m1 = B128(ctxt,5);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  //LOAD_MSG_3_2
+  m0 = B128(ctxt,4); m1 = B128(ctxt,0);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,6); m1 = B128(ctxt,7);  b1 = #VPUNPCKL_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    DIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+  
+  //LOAD_MSG_3_3
+  m0 = B128(ctxt,1); m1 = B128(ctxt,2);  b0 = #VPBLEND_8u16(m0,m1,0xF0);
+  m0 = B128(ctxt,2); m1 = B128(ctxt,7);  b1 = #VPBLEND_8u16(m0,m1,0xF0);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_3_4
+  m0 = B128(ctxt,3); m1 = B128(ctxt,5);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,0); m1 = B128(ctxt,4);  b1 = #VPUNPCKL_2u64(m0,m1);
+
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    UNDIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+
+   return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+inline fn BLAKE2_ROUND_4(reg u64 ctxt, reg u128 row1l row2l row3l row4l row1h row2h row3h row4h)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  reg u128 m0 m1 b0 b1;
+
+  //LOAD_MSG_4_1
+  m0 = B128(ctxt,4); m1 = B128(ctxt,2);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,1); m1 = B128(ctxt,5);  b1 = #VPUNPCKL_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  //LOAD_MSG_4_2
+  m0 = B128(ctxt,0); m1 = B128(ctxt,3);  b0 = #VPBLEND_8u16(m0,m1,0xF0);
+  m0 = B128(ctxt,2); m1 = B128(ctxt,7);  b1 = #VPBLEND_8u16(m0,m1,0xF0);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    DIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+  
+  //LOAD_MSG_4_3
+  m0 = B128(ctxt,7); m1 = B128(ctxt,5);  b0 = #VPBLEND_8u16(m0,m1,0xF0);
+  m0 = B128(ctxt,3); m1 = B128(ctxt,1);  b1 = #VPBLEND_8u16(m0,m1,0xF0);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_4_4
+  m0 = B128(ctxt,6); m1 = B128(ctxt,0);  b0 = #VPALIGNR_128(m0,m1,8);
+  m0 = B128(ctxt,4); m1 = B128(ctxt,6);  b1 = #VPBLEND_8u16(m0,m1,0xF0);
+
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    UNDIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+inline fn BLAKE2_ROUND_5(reg u64 ctxt, reg u128 row1l row2l row3l row4l row1h row2h row3h row4h)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  reg u128 m0 m1 b0 b1;
+
+  //LOAD_MSG_5_1
+  m0 = B128(ctxt,1); m1 = B128(ctxt,3);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,0); m1 = B128(ctxt,4);  b1 = #VPUNPCKL_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  //LOAD_MSG_5_2
+  m0 = B128(ctxt,6); m1 = B128(ctxt,5);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,5); m1 = B128(ctxt,1);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    DIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+  
+  //LOAD_MSG_5_3
+  m0 = B128(ctxt,2); m1 = B128(ctxt,3);  b0 = #VPBLEND_8u16(m0,m1,0xF0);
+  m0 = B128(ctxt,7); m1 = B128(ctxt,0);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_5_4
+  m0 = B128(ctxt,6); m1 = B128(ctxt,2);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,7); m1 = B128(ctxt,4);  b1 = #VPBLEND_8u16(m0,m1,0xF0);
+
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    UNDIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+inline fn BLAKE2_ROUND_6(reg u64 ctxt, reg u128 row1l row2l row3l row4l row1h row2h row3h row4h)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  reg u128 m0 m1 b0 b1;
+  inline int t0;
+
+  //LOAD_MSG_6_1
+  m0 = B128(ctxt,6); m1 = B128(ctxt,0);  b0 = #VPBLEND_8u16(m0,m1,0xF0);
+  m0 = B128(ctxt,7); m1 = B128(ctxt,2);  b1 = #VPUNPCKL_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  //LOAD_MSG_6_2
+  m0 = B128(ctxt,2); m1 = B128(ctxt,7);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,5); m1 = B128(ctxt,6);  b1 = #VPALIGNR_128(m0,m1,8);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    DIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+  
+  //LOAD_MSG_6_3
+  m0 = B128(ctxt,0); m1 = B128(ctxt,3);  b0 = #VPUNPCKL_2u64(m0,m1);
+  
+  m0 = B128(ctxt,4); 
+  m1 =0x4E;  t0 = shuffle(1,0,3,2);
+  b1 = #VPSHUFD(m0,t0);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_6_4
+  
+  m0 = B128(ctxt,3); m1 = B128(ctxt,1);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,1); m1 = B128(ctxt,5);  b1 = #VPBLEND_8u16(m0,m1,0xF0);
+
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    UNDIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+inline fn BLAKE2_ROUND_7(reg u64 ctxt, reg u128 row1l row2l row3l row4l row1h row2h row3h row4h)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  reg u128 m0 m1 b0 b1;
+
+  //LOAD_MSG_7_1
+  m0 = B128(ctxt,6); m1 = B128(ctxt,3);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,6); m1 = B128(ctxt,1);  b1 = #VPBLEND_8u16(m0,m1,0xF0);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  //LOAD_MSG_7_2
+  m0 = B128(ctxt,7); m1 = B128(ctxt,5);  b0 = #VPALIGNR_128(m0,m1,8);
+  m0 = B128(ctxt,0); m1 = B128(ctxt,4);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    DIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+  
+  //LOAD_MSG_7_3
+  m0 = B128(ctxt,2); m1 = B128(ctxt,7);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,4); m1 = B128(ctxt,1);  b1 = #VPUNPCKL_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_7_4
+  m0 = B128(ctxt,0); m1 = B128(ctxt,2);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,3); m1 = B128(ctxt,5);  b1 = #VPUNPCKL_2u64(m0,m1);
+
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    UNDIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+inline fn BLAKE2_ROUND_8(reg u64 ctxt, reg u128 row1l row2l row3l row4l row1h row2h row3h row4h)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  reg u128 m0 m1 b0 b1;
+
+  //LOAD_MSG_8_1
+  m0 = B128(ctxt,3); m1 = B128(ctxt,7);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,0); m1 = B128(ctxt,5);  b1 = #VPALIGNR_128(m0,m1,8);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  //LOAD_MSG_8_2
+  m0 = B128(ctxt,7); m1 = B128(ctxt,4);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,4); m1 = B128(ctxt,1);  b1 = #VPALIGNR_128(m0,m1,8);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    DIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+  
+  //LOAD_MSG_8_3
+  b0 = B128(ctxt,6);
+  m0 = B128(ctxt,5); m1 = B128(ctxt,0);  b1 =#VPALIGNR_128(m0,m1,8);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_8_4
+  m0 = B128(ctxt,1); m1 = B128(ctxt,3);  b0 = #VPBLEND_8u16(m0,m1,0xF0);
+  b1 = B128(ctxt,2);
+
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    UNDIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+inline fn BLAKE2_ROUND_9(reg u64 ctxt, reg u128 row1l row2l row3l row4l row1h row2h row3h row4h)
+  -> reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128, reg u128 {
+  reg u128 m0 m1 b0 b1;
+
+  //LOAD_MSG_9_1
+  m0 = B128(ctxt,5); m1 = B128(ctxt,4);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,3); m1 = B128(ctxt,0);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  //LOAD_MSG_9_2
+  m0 = B128(ctxt,1); m1 = B128(ctxt,2);  b0 = #VPUNPCKL_2u64(m0,m1);
+  m0 = B128(ctxt,3); m1 = B128(ctxt,2);  b1 = #VPBLEND_8u16(m0,m1,0xF0);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    DIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+  
+  //LOAD_MSG_9_3
+  m0 = B128(ctxt,7); m1 = B128(ctxt,4);  b0 = #VPUNPCKH_2u64(m0,m1);
+  m0 = B128(ctxt,1); m1 = B128(ctxt,6);  b1 = #VPUNPCKH_2u64(m0,m1);
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G1(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  
+  //LOAD_MSG_9_4
+  m0 = B128(ctxt,7); m1 = B128(ctxt,5);  b0 = #VPALIGNR_128(m0,m1,8);
+  m0 = B128(ctxt,6); m1 = B128(ctxt,0);  b1 = #VPUNPCKL_2u64(m0,m1);
+
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    G2(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h,b0,b1);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    UNDIAGONALIZE(row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h);
+
+  return row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h;
+}
+
+
+fn compress(reg u64 ctxt last) {
+  reg u128 row1l row1h row2l row2h row3l row3h row4l row4h;
+  reg u128 tmp;
+  
+  row1l = H128(ctxt,0);
+  row2l = H128(ctxt,2);
+  row3l = iv0;
+  
+  tmp = zero;
+  tmp = #VPINSR_2u64(tmp, T(ctxt,0), 0);
+  row4l = iv4; row4l ^= tmp;
+
+  row1h = H128(ctxt,1);
+  row2h = H128(ctxt,3);
+  row3h = iv2;
+
+  tmp = zero;
+  tmp = #VPINSR_2u64(tmp, last, 0);
+  row4h = iv6; row4h ^= tmp;
+  
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h = 
+    BLAKE2_ROUND_0(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    BLAKE2_ROUND_1(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+   BLAKE2_ROUND_2(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    BLAKE2_ROUND_3(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    BLAKE2_ROUND_4(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    BLAKE2_ROUND_5(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    BLAKE2_ROUND_6(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    BLAKE2_ROUND_7(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    BLAKE2_ROUND_8(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    BLAKE2_ROUND_9(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    BLAKE2_ROUND_0(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+  row1l,row2l,row3l,row4l,row1h,row2h,row3h,row4h =
+    BLAKE2_ROUND_1(ctxt, row1l, row2l, row3l, row4l, row1h, row2h, row3h, row4h);
+
+  
+  row1l ^= row3l;
+  tmp = H128(ctxt,0); tmp ^= row1l;
+  H128(ctxt,0) = tmp;
+  
+   
+  row1h ^= row3h;
+  tmp = H128(ctxt,1); tmp ^= row1h; 
+  H128(ctxt,1) = tmp;
+  
+   
+  row2l ^= row4l;
+  tmp = H128(ctxt,2); tmp ^= row2l;
+  H128(ctxt,2) = tmp; //<---
+  
+   
+  row2h ^= row4h;
+  tmp = H128(ctxt,3); tmp ^= row2h; 
+  H128(ctxt,3) = tmp; // <<---
+}
+
+
+
+// @pre: 0 < inputlen
+inline fn updateBuff(reg u64 ctxt input inputlen) -> reg u64, reg u64 {
+  reg bool zf cf;
+  reg u64 c_r buf buflen n;
+
+  c_r = C(ctxt);
+  // buflen = 128 - c_r;
+  buflen = 128;
+  _, _, _, _, zf, buflen = #SUB(buflen, c_r);
+  if (zf) {
+    cf, T(ctxt,0) += 128;
+    cf, T(ctxt,1) += 0 + cf;
+    n = 0;
+    compress(ctxt,n);
+    c_r = 0;
+    buflen = 128;
+  }
+
+  buf = ctxt;
+  buf += c_r;
+  n = fillBuff(buf, buflen, input, inputlen);
+  c_r += n;
+
+  C(ctxt) = c_r;
+
+  input += n;
+  inputlen -= n;
+
+  return input, inputlen;
+}
+
+//STACK_RETURN_ADDRESS() 
+fn blake2b_init(reg u64 ctxt outlen key keylen) {
+  reg u64 h0 t;
+
+  h0 = keylen;
+  h0 <<= 8;
+  h0 ^= 0x01010000;
+  h0 ^= outlen;
+  // h[0..7] = IV[0..7]
+  t = 0x6a09e667f3bcc908; t ^= h0; H(ctxt,0) = t; 
+  t = 0xbb67ae8584caa73b; H(ctxt,1) = t; 
+  t = 0x3c6ef372fe94f82b; H(ctxt,2) = t; 
+  t = 0xa54ff53a5f1d36f1; H(ctxt,3) = t;
+  t = 0x510e527fade682d1; H(ctxt,4) = t; 
+  t = 0x9b05688c2b3e6c1f; H(ctxt,5) = t; 
+  t = 0x1f83d9abfb41bd6b; H(ctxt,6) = t; 
+  t = 0x5be0cd19137e2179; H(ctxt,7) = t;
+
+  C(ctxt) = 0;
+  outlen &= 4294967295; // clamp outlen to fit in 32bit
+  OL(ctxt) = outlen;
+  T(ctxt,0) = 0;
+  T(ctxt,1) = 0;
+
+  if (keylen > 0) {
+    // keylen <= 64
+    C(ctxt) = 128;
+    _ = fillBuff(ctxt, keylen, key, keylen);
+    t = ctxt; // resolve allocation conflict...
+    fillup0Buff(t, keylen);
+  } 
+}
+
+STACK_RETURN_ADDRESS() 
+fn blake2b_update(reg u64 ctxt input inputlen) {
+  while (inputlen > 0) {
+      input, inputlen = updateBuff(ctxt, input, inputlen);
+  }
+}
+
+STACK_RETURN_ADDRESS() 
+fn blake2b_finish(reg u64 ctxt output) {
+  reg u64 outlen last t;
+  reg bool cf;
+
+  // update counters
+  t = C(ctxt);
+  cf, T(ctxt,0) += t;
+  cf, T(ctxt,1) += 0 + cf;
+  // fill remaining buffer with 0s
+  last = ctxt; // to resolve an allocation conflict...
+  fillup0Buff(last, t);
+  // last call to compress
+  last = -1;
+  compress(ctxt,last);
+  // extract output
+  outlen = OL(ctxt);
+  last = ctxt;
+  last += 8*16; //update last pointer to H
+  if (outlen > 64) { outlen = 32; } // used on the "long" version...
+  memcpy( output, last, outlen);
+}
+
+
+
+
+
+export fn blake2b_init_jazz(reg u64 ctxt0 outlen0 key0 keylen0) -> reg u64 {
+  reg u64 r ctxt outlen key keylen;
+
+  // Relax ABI constraints
+  ctxt=ctxt0; outlen=outlen0; key=key0; keylen=keylen0;
+
+  // Sanity checks: "outlen > 64 && keylen > 64"
+  r = outlen;
+  r |= keylen;
+  if (outlen > 64) {
+    r = -1;
+  } else {
+    blake2b_init(ctxt, outlen, key, keylen);
+    r = 0;
+  }
+
+  return r;
+}
+
+export fn blake2b_update_jazz(reg u64 ctxt0 input0 inputlen0) -> reg u64 {
+  reg u64 r ctxt input inputlen;
+
+  // Relax ABI constraints
+  ctxt=ctxt0; input=input0; inputlen=inputlen0;
+
+  // Sanity checks: "OL(ctxt) != 0"
+  r = OL(ctxt);
+
+  if(r == 0) {
+    r = -1;
+  } else {
+    blake2b_update(ctxt, input, inputlen); 
+    r = 0;
+  }
+
+  return r;
+}
+
+export fn blake2b_finish_jazz(reg u64 ctxt0 out0) -> reg u64 {
+  reg u64 r ctxt out;
+
+  // Relax ABI constraints
+  ctxt=ctxt0; out=out0;
+
+  // Sanity checks: "OL(ctxt) != 0"
+  r = OL(ctxt);
+
+  if(r == 0) {
+    r = -1;  
+  } else {
+    blake2b_finish(ctxt, out);
+    // block further output...
+    OL(ctxt) = 0;    
+    r = 0;
+  }
+
+  return r;
+}

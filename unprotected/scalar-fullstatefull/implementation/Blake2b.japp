@@ -1,0 +1,379 @@
+
+/* some macros to access state components... */
+
+
+
+/* Mix Function  [needs 1+10 regs] */
+inline fn doubleG( reg u64 ctxt,
+                   stack u64[16] v,
+       inline int a0 b0 c0 d0,
+       inline int x0 y0,
+       inline int a1 b1 c1 d1,
+       inline int x1 y1
+      ) -> stack u64[16] {
+  reg u64 v_a0, v_a1, v_b0, v_b1, v_c0, v_c1, v_d0, v_d1;
+  reg u64 m0, m1;
+
+  m0 = [ctxt + 8*(x0)]; m1 = [ctxt + 8*(x1)];   // LIVE: m0, m1 (2)
+
+  // v[a] = v[a] + v[b] + x;
+  v_a0 = v[a0]; v_a1 = v[a1];     // LIVE: v_a0, v_01 (4)
+  v_b0 = v[b0]; v_b1 = v[b1];     // LIVE: v_b0, v_d1 (6)
+  v_a0 += v_b0; v_a1 += v_b1;
+  v_a0 += m0; v_a1 += m1;     // KILL: m0, m1 (4)
+
+  // v[d] = ROTR64(v[d] ^ v[a], 32);
+  v_d0 = v[d0]; v_d1 = v[d1];     // LIVE: v_d0, v_d1 (6)
+  v_d0 ^= v_a0; v_d1 ^= v_a1;
+  _,_,v_d0 = #ROR_64(v_d0, 32);
+  _,_,v_d1 = #ROR_64(v_d1, 32);
+
+  m0 = [ctxt + 8*(y0)]; m1 = [ctxt + 8*(y1)];   // LIVE: m0, m1 (8)
+
+  // v[c] = v[c] + v[d];
+  v_c0 = v[c0]; v_c1 = v[c1];     // LIVE: v_c0, v_c1 (10)
+  v_c0 += v_d0; v_c1 += v_d1;
+
+  // v[b] = ROTR64(v[b] ^ v[c], 24);
+  v_b0 ^= v_c0; v_b1 ^= v_c1;
+  _,_,v_b0 = #ROR_64(v_b0, 24);
+  _,_,v_b1 = #ROR_64(v_b1, 24);
+
+  // v[a] = v[a] + v[b] + y;
+  v_a0 += v_b0; v_a1 += v_b1;
+  v_a0 += m0; v_a1 += m1;     // KILL: m0, m1 (8)
+
+  v[a0] = v_a0; v[a1] = v_a1;
+
+  // v[d] = ROTR64(v[d] ^ v[a], 16);
+  v_d0 ^= v_a0; v_d1 ^= v_a1;      // KILL: v_a0, v_a1 (6)
+  _,_,v_d0 = #ROR_64(v_d0, 16);
+  _,_,v_d1 = #ROR_64(v_d1, 16);
+  v[d0] = v_d0; v[d1] = v_d1;
+ 
+  // v[c] = v[c] + v[d];
+  v_c0 += v_d0; v_c1 += v_d1;     // KILL: v_d0, v_d1 (4)
+  v[c0] = v_c0; v[c1] = v_c1;
+
+  // v[b] = ROTR64(v[b] ^ v[c], 63);
+  v_b0 ^= v_c0; v_b1 ^= v_c1;      // KILL: v_c0, v_c1 (2)
+  _,_,v_b0 = #ROR_64(v_b0, 63);
+  _,_,v_b1 = #ROR_64(v_b1, 63);
+  v[b0] = v_b0; v[b1] = v_b1;     // KILL: v_b0, v_b1 (0)
+  
+  return v;
+}
+
+
+/* Compression [needs 1+10 regs] */
+inline fn compressMix(reg u64 ctxt, stack u64[16] v) -> stack u64[16] {
+  // i = 0
+  v = doubleG(ctxt, v, 0,4,8,12, 0,1, 1,5,9,13, 2,3);
+  v = doubleG(ctxt, v, 2,6,10,14, 4,5, 3,7,11,15, 6,7);
+  v = doubleG(ctxt, v, 0,5,10,15, 8,9, 1,6,11,12, 10,11);  
+  v = doubleG(ctxt, v, 2,7,8,13, 12,13, 3,4,9,14, 14,15);
+  
+  // i = 1   
+  v = doubleG(ctxt, v, 0,4,8,12, 14,10, 1,5,9,13, 4,8);
+  v = doubleG(ctxt, v, 2,6,10,14, 9,15, 3,7,11,15, 13,6);
+  v = doubleG(ctxt, v, 0,5,10,15, 1,12, 1,6,11,12, 0,2);
+  v = doubleG(ctxt, v, 2,7,8,13, 11,7, 3,4,9,14, 5,3);
+
+  // i = 2   
+  v = doubleG(ctxt, v, 0,4,8,12, 11,8, 1,5,9,13, 12,0);
+  v = doubleG(ctxt, v, 2,6,10,14, 5,2, 3,7,11,15, 15,13);
+  v = doubleG(ctxt, v, 0,5,10,15, 10,14, 1,6,11,12, 3,6);
+  v = doubleG(ctxt, v, 2,7,8,13, 7,1, 3,4,9,14, 9,4);
+
+  // i = 3   
+  v = doubleG(ctxt, v, 0,4,8,12, 7,9, 1,5,9,13, 3,1);
+  v = doubleG(ctxt, v, 2,6,10,14, 13,12, 3,7,11,15, 11,14);
+  v = doubleG(ctxt, v, 0,5,10,15, 2,6, 1,6,11,12, 5,10);
+  v = doubleG(ctxt, v, 2,7,8,13, 4,0, 3,4,9,14, 15,8);
+
+  // i = 4   
+  v = doubleG(ctxt, v, 0,4,8,12, 9,0, 1,5,9,13, 5,7);
+  v = doubleG(ctxt, v, 2,6,10,14, 2,4, 3,7,11,15, 10,15);
+  v = doubleG(ctxt, v, 0,5,10,15, 14,1, 1,6,11,12, 11,12);
+  v = doubleG(ctxt, v, 2,7,8,13, 6,8, 3,4,9,14, 3,13);
+
+  // i = 5   
+  v = doubleG(ctxt, v, 0,4,8,12, 2,12, 1,5,9,13, 6,10);
+  v = doubleG(ctxt, v, 2,6,10,14, 0,11, 3,7,11,15, 8,3);
+  v = doubleG(ctxt, v, 0,5,10,15, 4,13, 1,6,11,12, 7,5);
+  v = doubleG(ctxt, v, 2,7,8,13, 15,14, 3,4,9,14, 1,9);
+
+  // i = 6   
+  v = doubleG(ctxt, v, 0,4,8,12, 12,5, 1,5,9,13, 1,15);
+  v = doubleG(ctxt, v, 2,6,10,14, 14,13, 3,7,11,15, 4,10);
+  v = doubleG(ctxt, v, 0,5,10,15, 0,7, 1,6,11,12, 6,3);
+  v = doubleG(ctxt, v, 2,7,8,13, 9,2, 3,4,9,14, 8,11);
+
+  // i = 7   
+  v = doubleG(ctxt, v, 0,4,8,12, 13,11, 1,5,9,13, 7,14);
+  v = doubleG(ctxt, v, 2,6,10,14, 12,1, 3,7,11,15, 3,9);
+  v = doubleG(ctxt, v, 0,5,10,15, 5,0, 1,6,11,12, 15,4);
+  v = doubleG(ctxt, v, 2,7,8,13, 8,6, 3,4,9,14, 2,10);
+
+  // i = 8   
+  v = doubleG(ctxt, v, 0,4,8,12, 6,15, 1,5,9,13, 14,9);
+  v = doubleG(ctxt, v, 2,6,10,14, 11,3, 3,7,11,15, 0,8);
+  v = doubleG(ctxt, v, 0,5,10,15, 12,2, 1,6,11,12, 13,7);
+  v = doubleG(ctxt, v, 2,7,8,13, 1,4, 3,4,9,14, 10,5);
+
+  //i = 9  
+  v = doubleG(ctxt, v, 0,4,8,12, 10,2, 1,5,9,13, 8,4);
+  v = doubleG(ctxt, v, 2,6,10,14, 7,6, 3,7,11,15, 1,5);
+  v = doubleG(ctxt, v, 0,5,10,15, 15,11, 1,6,11,12, 9,14);
+  v = doubleG(ctxt, v, 2,7,8,13, 3,12, 3,4,9,14, 13,0);
+
+  // i = 10 
+  v = doubleG(ctxt, v, 0,4,8,12, 0,1, 1,5,9,13, 2,3);
+  v = doubleG(ctxt, v, 2,6,10,14, 4,5, 3,7,11,15, 6,7);
+  v = doubleG(ctxt, v, 0,5,10,15, 8,9, 1,6,11,12, 10,11);  
+  v = doubleG(ctxt, v, 2,7,8,13, 12,13, 3,4,9,14, 14,15);
+
+  // i = 11  
+  v = doubleG(ctxt, v, 0,4,8,12, 14,10, 1,5,9,13, 4,8);
+  v = doubleG(ctxt, v, 2,6,10,14, 9,15, 3,7,11,15, 13,6);
+  v = doubleG(ctxt, v, 0,5,10,15, 1,12, 1,6,11,12, 0,2);
+  v = doubleG(ctxt, v, 2,7,8,13, 11,7, 3,4,9,14, 5,3);
+
+  return v;
+}
+
+/* compress: [needs 2+10 regs] */ 
+fn compress(reg u64 ctxt last) {
+  inline int i;
+  stack u64[16] v;
+  reg u64 t0 t1;
+
+  for i = 0 to 8 {
+    t0 = [ctxt + 8*(16+i)];
+    v[i] = t0;
+  }
+  t0 = 0x6a09e667f3bcc908; v[8] = t0; 
+  t0 = 0xbb67ae8584caa73b; v[9] = t0; 
+  t0 = 0x3c6ef372fe94f82b; v[10] = t0; 
+  t0 = 0xa54ff53a5f1d36f1; v[11] = t0;
+  t0 = 0x510e527fade682d1; v[12] = t0; 
+  t0 = 0x9b05688c2b3e6c1f; v[13] = t0; 
+  t0 = 0x1f83d9abfb41bd6b; v[14] = t0; 
+  t0 = 0x5be0cd19137e2179; v[15] = t0;
+
+  t0 = [ctxt + 8*(24+0)] ; v[12] ^= t0;
+  t1 = [ctxt + 8*(24+1)] ; v[13] ^= t1;
+  
+  v[14] ^= last;      // KILL: last
+
+  v = compressMix(ctxt, v);
+
+  for i = 0 to 8 {  
+    t0 = v[i]; t1 = v[i+8];
+    t0 ^= t1;
+    [ctxt + 8*(16+i)] ^= t0;
+  }
+}
+
+inline fn fillup0Buff(reg u64 buf buflen) {
+  reg u64 i n8 t;
+
+  buf += buflen;
+  t = 128;
+  t -= buflen;
+
+  n8 = t;
+  n8 >>= 3;
+
+  i = 0;
+  while ( i < n8 )
+  {
+    [buf + 8*i] = 0;
+    i += 1;
+  }
+
+  i <<= 3;
+  while ( i < t )
+  {
+    (u8)[buf + i] = 0;
+    i += 1;
+  }
+}
+
+inline fn fillBuff(reg u64 buf buflen input inputlen) -> reg u64 {
+  reg u64 i n n8 t;
+  reg u8 t8;
+
+  // n = min(buflen, inputlen);
+  n = buflen;
+  n = inputlen if inputlen < buflen;
+
+  n8 = n;
+  n8 >>= 3;
+
+  i = 0;
+  while ( i < n8 )
+  {
+    t = [input + 8*i];
+    [buf + 8*i] = t;
+    i += 1;
+  }
+
+  i <<= 3;
+  while ( i < n )
+  {
+    t8 = (u8)[input + i];
+    (u8)[buf + i] = t8;
+    i += 1;
+  }
+
+  return n;
+}
+
+// @pre: 0 < inputlen
+inline fn updateBuff(reg u64 ctxt input inputlen) -> reg u64, reg u64 {
+  reg bool zf cf;
+  reg u64 c_r buf buflen n;
+
+  c_r = [ctxt + 8*26];
+  // buflen = 128 - c_r;
+  buflen = 128;
+  _, _, _, _, zf, buflen = #SUB(buflen, c_r);
+
+  if (zf) {
+    
+    cf, [ctxt + 8*(24+0)] += 128;
+    cf, [ctxt + 8*(24+1)] += 0 + cf;
+    n = 0;
+    compress(ctxt, n);
+    c_r = 0;
+    buflen = 128;
+  }
+
+  buf = ctxt;
+  buf += c_r;
+  n = fillBuff(buf, buflen, input, inputlen);
+  c_r += n;
+
+  [ctxt + 8*26] = c_r;
+
+  input += n;
+  inputlen -= n;
+
+  return input, inputlen;
+}
+
+
+export fn blake2b_update_jazz(reg u64 ctxt input inputlen) -> reg u64{
+  reg u64 outlen ret;
+
+  outlen = [ctxt + 8*27];
+  
+  if(outlen == 0)
+  {
+    ret = -1;
+  }
+  else{
+    while (inputlen > 0) {
+      input, inputlen = updateBuff(ctxt, input, inputlen);
+    }
+    ret = 0;
+  }
+  return ret;
+}
+
+export fn blake2b_init_jazz(reg u64 ctxt outlen key keylen) -> reg u64{
+  reg u64 h0 t r;
+
+  // precondition
+  //outlen -=1; outlen &= 63; outlen +=1; // outlen==0 -> outlen=64
+  if(outlen > 64) { //outlen is too big
+    r = -1;
+  }
+  else { //outlen is good
+    if(keylen > 64) { //keylen is too big
+      r = -2;
+    }
+    else { //outlen and keylen are good
+      h0 = keylen;
+      h0 <<= 8;
+      h0 ^= 0x01010000;
+      h0 ^= outlen;
+      // h[0..7] = IV[0..7]
+      t = 0x6a09e667f3bcc908; t ^= h0; [ctxt + 8*(16+0)] = t; 
+      t = 0xbb67ae8584caa73b; [ctxt + 8*(16+1)] = t; 
+      t = 0x3c6ef372fe94f82b; [ctxt + 8*(16+2)] = t; 
+      t = 0xa54ff53a5f1d36f1; [ctxt + 8*(16+3)] = t;
+      t = 0x510e527fade682d1; [ctxt + 8*(16+4)] = t; 
+      t = 0x9b05688c2b3e6c1f; [ctxt + 8*(16+5)] = t; 
+      t = 0x1f83d9abfb41bd6b; [ctxt + 8*(16+6)] = t; 
+      t = 0x5be0cd19137e2179; [ctxt + 8*(16+7)] = t;
+
+      [ctxt + 8*26] = 0;
+      [ctxt + 8*27] = outlen;
+      [ctxt + 8*(24+0)] = 0;
+      [ctxt + 8*(24+1)] = 0;
+
+      if (keylen > 0) {
+        // ensure keylen <= 64 (by masking)
+        keylen -=1; keylen &= 63; keylen +=1;
+        [ctxt + 8*26] = 128;
+        _ = fillBuff(ctxt, keylen, key, keylen);
+        fillup0Buff(ctxt, keylen);
+      }
+      r = 0;
+    }
+  }
+
+  return r;  
+}
+
+export fn blake2b_finish_jazz(reg u64 ctxt output) -> reg u64{
+  reg u64 outlen outlen8 last i t;
+  reg u8 t8;
+  reg bool cf;
+  reg u64 ret;
+
+  outlen = [ctxt + 8*27];
+
+  if(outlen == 0)
+  {
+    ret = -1;
+    
+  }
+  else{
+    // update counters
+    t = [ctxt + 8*26];
+    cf, [ctxt + 8*(24+0)] += t;
+    cf, [ctxt + 8*(24+1)] += 0 + cf;
+    // fill remaining buffer with 0s
+    last = ctxt; // to resolve an allocation conflict...
+    fillup0Buff(last, t);
+    // last call to compress
+    last = -1;
+    compress(ctxt, last);
+    // extract output
+  
+    outlen8 = outlen;
+    outlen8 >>= 3;
+    i = 0;
+
+    while (i < outlen8) {
+      t = [ctxt + 8*(16+i)];
+      [output + 8*i] = t;
+      i += 1;
+    }
+    i <<= 3;
+    while (i < outlen) {
+      t8 = (u8) [ctxt + (128+i)];
+      (u8) [output + i] = t8;
+      i += 1;
+    }
+
+    [ctxt + 8*27] = 0;
+    
+    ret = 0;
+  }
+
+  return ret;
+}
