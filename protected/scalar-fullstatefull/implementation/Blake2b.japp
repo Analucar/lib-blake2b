@@ -234,7 +234,6 @@ inline fn fillBuff(reg u64 buf buflen input inputlen) -> reg u64 {
 inline fn updateBuff(reg u64 ctxt input inputlen) -> reg u64, reg u64 {
   reg bool zf cf;
   reg u64 c_r buf buflen n;
-  #msf reg u64 ms;
 
   c_r = [ctxt + 8*26];
   // buflen = 128 - c_r;
@@ -249,8 +248,6 @@ inline fn updateBuff(reg u64 ctxt input inputlen) -> reg u64, reg u64 {
     c_r = 0;
     buflen = 128;
   }
-
-  ms = #set_msf(!zf, ms);
 
   buf = ctxt;
   buf += c_r;
