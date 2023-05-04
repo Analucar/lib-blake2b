@@ -1,0 +1,130 @@
+docker build -t oo7 .
+
+docker run -p 8000:8000 -i -t oo7
+
+docker run -i -t --mount type=bind,source=/storage/lcarneir/oo7,target=/home/docker/oo7/blake2b oo7
+
+----------------- apos exit ------------------
+
+docker start <id container>
+
+docker exec -it <id container> bash
+
+------------------------------------------------
+
+sudo apt-get install tmux
+
+sudo apt-get install vim
+
+------------------------------------
+
+cd home/docker
+
+sudo apt install build-essential
+
+sudo apt-get install software-properties-common
+
+sudo add-apt-repository --yes ppa:avsm/ppa
+
+sudo apt-get update
+
+sudo apt-get --yes install opam
+
+opam init --comp=4.14.0
+
+eval $(opam env --switch=4.14.0)
+
+eval `opam config env`
+
+opam install bap
+
+eval $(opam env)
+
+git clone https://github.com/winter2020/oo7.git
+
+git clone https://github.com/BinaryAnalysisPlatform/bap-toolkit.git
+
+cd bap-tooltik
+
+sudo apt install zip
+
+----------------------
+alterar código do build.sh para o caminho:
+(install) DST=/home/docker/.opam/4.14.0/share/bap
+
+make
+
+cd oo7/toy
+
+bap test --recipe=spectre
+
+grep spectre-path incidents
+
+grep spectre-pattern incidents
+
+objdump -S test > test.asm
+
+~/oo7/tool/incidents_profile.py incidents test.asm
+
+
+---------- COMANDOS ------------------
+
+$ opam init
+$ eval $(opam env)
+
+============ oo7 ==============
+
+$ gcc test.c -g -o test
+
+$ objdump -S test > test.asm
+
+
+------------- COMANDOS -------------
+
+$ docker run -p 8000:8000 -i -t oo7
+$ docker exec -it f18 bash
+
+$ opam init
+$ eval $(opam env)
+
+alterar código do build.sh para o caminho:
+(install) DST=/home/docker/.opam/4.14.0/share/bap
+
+$ cd bap-toolkit
+$ make
+
+============ oo7 ==============
+
+$ chown docker:docker blake2b.c
+
+$ while true; do pmap 177 |tail -n 1; sleep 900; done > output.txt
+
+$ tmux attach-session -t 0
+
+$ gcc test.c -g -o test
+
+$ objdump -S test > test.asm
+
+$ bap test --recipe=spectre
+
+$ ~/oo7/tool/incidents_profile.py incidents test.asm
+
+=========== Bap =============
+
+$ gcc test.c -g -o test
+
+$ bap test --recipe=spectre
+
+$ grep spectre-path incidents
+
+$ grep spectre-pattern incidents
+
+
+
+
+
+
+
+
+
+
