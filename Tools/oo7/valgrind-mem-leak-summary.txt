@@ -1,0 +1,340 @@
+
+==15416== Memcheck, a memory error detector
+==15416== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==15416== Using Valgrind-3.21.0 and LibVEX; rerun with -h for copyright info
+==15416== Command: bap blake2b --recipe=spectre
+==15416== Parent PID: 15412
+==15416== 
+==15416== Warning: set address range perms: large range [0x26e29040, 0x46e2a078) (undefined)
+==15416== Warning: set address range perms: large range [0x59ec5040, 0x79ec6078) (undefined)
+==15416== Warning: set address range perms: large range [0x79ec7040, 0x99ec8078) (undefined)
+==15416== Warning: set address range perms: large range [0x99ec9040, 0xb9eca078) (undefined)
+==15416== Warning: set address range perms: large range [0xb9ecb040, 0xd9ecc078) (undefined)
+==15416== Syscall param sigaltstack(ss) points to uninitialised byte(s)
+==15416==    at 0x6083737: sigaltstack (syscall-template.S:78)
+==15416==    by 0xD828EA: caml_stop_stack_overflow_detection (signals_nat.c:350)
+==15416==    by 0xD8297D: caml_terminate_signals (signals_nat.c:317)
+==15416==    by 0xD91C6B: caml_do_exit (sys.c:162)
+==15416==    by 0xD91E6B: caml_sys_exit (sys.c:175)
+==15416==    by 0xCF49A2: camlStdlib__exit_488 (stdlib.ml:570)
+==15416==    by 0xDA18A4: caml_start_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD96C2C: caml_callback_exn (callback.c:111)
+==15416==    by 0xD81CC1: caml_execute_signal_exn (signals.c:214)
+==15416==    by 0xD81DEA: caml_process_pending_signals_exn (signals.c:100)
+==15416==    by 0xD81F31: caml_do_pending_actions_exn (signals.c:272)
+==15416==    by 0xD8227F: process_pending_actions_with_root_exn (signals.c:299)
+==15416==    by 0xD8227F: caml_process_pending_actions (signals.c:331)
+==15416==  Address 0x1ffefff830 is on thread 1's stack
+==15416==  in frame #1, created by caml_stop_stack_overflow_detection (signals_nat.c:346)
+==15416== 
+==15416== 
+==15416== HEAP SUMMARY:
+==15416==     in use at exit: 2,751,612,093 bytes in 4,400 blocks
+==15416==   total heap usage: 835,330 allocs, 830,930 frees, 3,176,773,366 bytes allocated
+==15416== 
+==15416== 0 bytes in 1 blocks are possibly lost in loss record 1 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD9D67D: caml_ba_alloc (bigarray.c:111)
+==15416==    by 0xD9D8B7: caml_ba_create (bigarray.c:520)
+==15416==    by 0xD5C4BD: camlStdlib__Bigarray__create_565 (bigarray.ml:182)
+==15416==    by 0xBD7367: camlSexplib__Conv__entry (conv.ml:83)
+==15416==    by 0x70FBE8: caml_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xDA18A4: caml_start_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD8094B: caml_startup_common (startup_nat.c:160)
+==15416==    by 0xD8099A: caml_startup_exn (startup_nat.c:167)
+==15416==    by 0xD8099A: caml_startup (startup_nat.c:172)
+==15416==    by 0x70E59B: main (main.c:37)
+==15416== 
+==15416== 0 bytes in 1 blocks are possibly lost in loss record 2 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD9D67D: caml_ba_alloc (bigarray.c:111)
+==15416==    by 0xD9D8B7: caml_ba_create (bigarray.c:520)
+==15416==    by 0xD5C4BD: camlStdlib__Bigarray__create_565 (bigarray.ml:182)
+==15416==    by 0xBD738E: camlSexplib__Conv__entry (conv.ml:84)
+==15416==    by 0x70FBE8: caml_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xDA18A4: caml_start_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD8094B: caml_startup_common (startup_nat.c:160)
+==15416==    by 0xD8099A: caml_startup_exn (startup_nat.c:167)
+==15416==    by 0xD8099A: caml_startup (startup_nat.c:172)
+==15416==    by 0x70E59B: main (main.c:37)
+==15416== 
+==15416== 0 bytes in 1 blocks are possibly lost in loss record 3 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD9D67D: caml_ba_alloc (bigarray.c:111)
+==15416==    by 0xD9D8B7: caml_ba_create (bigarray.c:520)
+==15416==    by 0xD5C4BD: camlStdlib__Bigarray__create_565 (bigarray.ml:182)
+==15416==    by 0x9C980A: camlBigstringaf__entry (bigstringaf.ml:6)
+==15416==    by 0x710DA8: caml_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xDA18A4: caml_start_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD8094B: caml_startup_common (startup_nat.c:160)
+==15416==    by 0xD8099A: caml_startup_exn (startup_nat.c:167)
+==15416==    by 0xD8099A: caml_startup (startup_nat.c:172)
+==15416==    by 0x70E59B: main (main.c:37)
+==15416== 
+==15416== 1 bytes in 1 blocks are possibly lost in loss record 4 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD9D67D: caml_ba_alloc (bigarray.c:111)
+==15416==    by 0xD9D8B7: caml_ba_create (bigarray.c:520)
+==15416==    by 0xD5C4BD: camlStdlib__Bigarray__create_565 (bigarray.ml:182)
+==15416==    by 0xBD4A79: camlSexplib__Pre_sexp__entry (pre_sexp.ml:672)
+==15416==    by 0x70FBA8: caml_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xDA18A4: caml_start_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD8094B: caml_startup_common (startup_nat.c:160)
+==15416==    by 0xD8099A: caml_startup_exn (startup_nat.c:167)
+==15416==    by 0xD8099A: caml_startup (startup_nat.c:172)
+==15416==    by 0x70E59B: main (main.c:37)
+==15416== 
+==15416== 8 bytes in 1 blocks are possibly lost in loss record 6 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD9D67D: caml_ba_alloc (bigarray.c:111)
+==15416==    by 0xD9D8B7: caml_ba_create (bigarray.c:520)
+==15416==    by 0xD5C4BD: camlStdlib__Bigarray__create_565 (bigarray.ml:182)
+==15416==    by 0xC2DF20: camlBin_prot__Read__entry (common.ml:88)
+==15416==    by 0x70F6B8: caml_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xDA18A4: caml_start_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD8094B: caml_startup_common (startup_nat.c:160)
+==15416==    by 0xD8099A: caml_startup_exn (startup_nat.c:167)
+==15416==    by 0xD8099A: caml_startup (startup_nat.c:172)
+==15416==    by 0x70E59B: main (main.c:37)
+==15416== 
+==15416== 37 bytes in 1 blocks are definitely lost in loss record 85 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD86D19: caml_stat_strdup_noexc (memory.c:892)
+==15416==    by 0xD86D48: caml_stat_strdup (memory.c:901)
+==15416==    by 0xD7C482: unix_putenv (putenv.c:40)
+==15416==    by 0x1512CCC8: camlBap_llvm_disasm__putenv_2051 (bap_llvm_disasm.ml:15)
+==15416==    by 0x1512CCE8: camlBap_llvm_disasm__init_inner_4931 (bap_llvm_disasm.ml:19)
+==15416==    by 0x16847822: camlLlvm_main__disasm_init_1900 (llvm_main.ml:9)
+==15416==    by 0x168479EB: camlLlvm_main__fun_5975 (llvm_main.ml:68)
+==15416==    by 0x98B59A: camlBap_main__fun_13998 (bap_main.ml:841)
+==15416==    by 0x98C642: camlBap_main__try_eval_8108 (bap_main.ml:1013)
+==15416==    by 0x98C963: camlBap_main__fun_14236 (bap_main.ml:1035)
+==15416==    by 0xCD4D6C: camlBase__Hashtbl__fold_1679 (hashtbl.ml:271)
+==15416== 
+==15416== 40 bytes in 1 blocks are possibly lost in loss record 104 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD773FC: st_mutex_create (st_posix.h:210)
+==15416==    by 0xD78863: caml_mutex_new (st_stubs.c:789)
+==15416==    by 0xCEC8F5: camlEvent__entry (event.ml:57)
+==15416==    by 0x70EB18: caml_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xDA18A4: caml_start_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD8094B: caml_startup_common (startup_nat.c:160)
+==15416==    by 0xD8099A: caml_startup_exn (startup_nat.c:167)
+==15416==    by 0xD8099A: caml_startup (startup_nat.c:172)
+==15416==    by 0x70E59B: main (main.c:37)
+==15416== 
+==15416== 96 bytes in 1 blocks are possibly lost in loss record 128 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD7785D: st_event_create (st_posix.h:304)
+==15416==    by 0xD7785D: caml_threadstatus_new (st_stubs.c:936)
+==15416==    by 0xD7785D: caml_thread_new_descriptor (st_stubs.c:371)
+==15416==    by 0xD77E5B: caml_thread_initialize (st_stubs.c:447)
+==15416==    by 0xCEADBE: camlThread__entry (thread.ml:94)
+==15416==    by 0x70EAE8: caml_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xDA18A4: caml_start_program (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD8094B: caml_startup_common (startup_nat.c:160)
+==15416==    by 0xD8099A: caml_startup_exn (startup_nat.c:167)
+==15416==    by 0xD8099A: caml_startup (startup_nat.c:172)
+==15416==    by 0x70E59B: main (main.c:37)
+==15416== 
+==15416== 8,192 bytes in 1 blocks are possibly lost in loss record 167 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD86016: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD80392: caml_init_atom_table (startup_aux.c:59)
+==15416==    by 0xD80809: init_static (startup_nat.c:61)
+==15416==    by 0xD80809: caml_startup_common (startup_nat.c:140)
+==15416==    by 0xD8099A: caml_startup_exn (startup_nat.c:167)
+==15416==    by 0xD8099A: caml_startup (startup_nat.c:172)
+==15416==    by 0x70E59B: main (main.c:37)
+==15416== 
+==15416== 495,672 bytes in 1 blocks are possibly lost in loss record 180 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD866EB: expand_heap (memory.c:367)
+==15416==    by 0xD86ABF: caml_alloc_shr_aux (memory.c:473)
+==15416==    by 0xD86ABF: caml_alloc_shr_for_minor_gc (memory.c:532)
+==15416==    by 0xD850FE: caml_oldify_one (minor_gc.c:209)
+==15416==    by 0xD852CC: caml_oldify_mopup (minor_gc.c:319)
+==15416==    by 0xD854C7: caml_empty_minor_heap (minor_gc.c:377)
+==15416==    by 0xD859F7: caml_gc_dispatch (minor_gc.c:492)
+==15416==    by 0xD85B35: caml_alloc_small_dispatch (minor_gc.c:539)
+==15416==    by 0xDA176D: caml_call_gc (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0x9D6C80: camlMonads_monad__Make2_36730 (monads_monad.ml:740)
+==15416==    by 0x9D732F: camlMonads_monad__Make_39407 (monads_monad.ml:760)
+==15416== 
+==15416== 495,672 bytes in 1 blocks are possibly lost in loss record 181 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD866EB: expand_heap (memory.c:367)
+==15416==    by 0xD86ABF: caml_alloc_shr_aux (memory.c:473)
+==15416==    by 0xD86ABF: caml_alloc_shr_for_minor_gc (memory.c:532)
+==15416==    by 0xD850FE: caml_oldify_one (minor_gc.c:209)
+==15416==    by 0xD852CC: caml_oldify_mopup (minor_gc.c:319)
+==15416==    by 0xD854C7: caml_empty_minor_heap (minor_gc.c:377)
+==15416==    by 0xD859F7: caml_gc_dispatch (minor_gc.c:492)
+==15416==    by 0xD85B35: caml_alloc_small_dispatch (minor_gc.c:539)
+==15416==    by 0xDA176D: caml_call_gc (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xAC7415: camlCore_kernel__Map__Provide_bin_io_10214 (map.ml:451)
+==15416==    by 0xACCA18: camlCore_kernel__Map__Make_binable_using_comparator_13013 (map.ml:571)
+==15416== 
+==15416== 991,344 bytes in 2 blocks are possibly lost in loss record 182 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD866EB: expand_heap (memory.c:367)
+==15416==    by 0xD86ABF: caml_alloc_shr_aux (memory.c:473)
+==15416==    by 0xD86ABF: caml_alloc_shr_for_minor_gc (memory.c:532)
+==15416==    by 0xD850FE: caml_oldify_one (minor_gc.c:209)
+==15416==    by 0xD8539F: caml_oldify_mopup (minor_gc.c:314)
+==15416==    by 0xD854C7: caml_empty_minor_heap (minor_gc.c:377)
+==15416==    by 0xD859F7: caml_gc_dispatch (minor_gc.c:492)
+==15416==    by 0xD85B35: caml_alloc_small_dispatch (minor_gc.c:539)
+==15416==    by 0xDA176D: caml_call_gc (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD14DE4: camlStdlib__Map__bal_398 (map.ml:115)
+==15416==    by 0xD14F19: camlStdlib__Map__add_428 (map.ml:129)
+==15416== 
+==15416== 1,019,960 bytes in 1 blocks are possibly lost in loss record 183 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD84A52: caml_init_major_heap (major_gc.c:1228)
+==15416==    by 0xD94A69: caml_init_gc (gc_ctrl.c:697)
+==15416==    by 0xD80800: caml_startup_common (startup_nat.c:135)
+==15416==    by 0xD8099A: caml_startup_exn (startup_nat.c:167)
+==15416==    by 0xD8099A: caml_startup (startup_nat.c:172)
+==15416==    by 0x70E59B: main (main.c:37)
+==15416== 
+==15416== 1,024,112 bytes in 2 blocks are possibly lost in loss record 184 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD866EB: expand_heap (memory.c:367)
+==15416==    by 0xD86ABF: caml_alloc_shr_aux (memory.c:473)
+==15416==    by 0xD86ABF: caml_alloc_shr_for_minor_gc (memory.c:532)
+==15416==    by 0xD850FE: caml_oldify_one (minor_gc.c:209)
+==15416==    by 0xD852CC: caml_oldify_mopup (minor_gc.c:319)
+==15416==    by 0xD854C7: caml_empty_minor_heap (minor_gc.c:377)
+==15416==    by 0xD859F7: caml_gc_dispatch (minor_gc.c:492)
+==15416==    by 0xD85B35: caml_alloc_small_dispatch (minor_gc.c:539)
+==15416==    by 0xDA176D: caml_call_gc (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0x9EA703: camlCmdliner_trie__loop_517 (cmdliner_trie.ml:37)
+==15416==    by 0x9EA58C: camlCmdliner_trie__loop_517 (cmdliner_trie.ml:34)
+==15416== 
+==15416== 2,596,920 bytes in 1 blocks are possibly lost in loss record 186 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD866EB: expand_heap (memory.c:367)
+==15416==    by 0xD869CF: caml_alloc_shr_aux (memory.c:473)
+==15416==    by 0xD869CF: caml_alloc_shr_no_track_noexc (memory.c:542)
+==15416==    by 0xD908CC: intern_alloc.part.0 (intern.c:638)
+==15416==    by 0xD90FDD: intern_alloc (intern.c:607)
+==15416==    by 0xD90FDD: input_val_from_block (intern.c:853)
+==15416==    by 0xD90FDD: caml_input_value_from_block (intern.c:880)
+==15416==    by 0xD9BEB3: caml_natdynlink_open (dynlink_nat.c:88)
+==15416==    by 0xA73B7F: camlDynlink__load_646 (dynlink.ml:94)
+==15416==    by 0xA72984: camlDynlink_common__load_1772 (dynlink_common.ml:329)
+==15416==    by 0x997C14: camlBap_plugins__load_unit_4859 (bap_plugins.ml:79)
+==15416==    by 0x997F3E: camlBap_plugins__load_entry_inner_9908 (bap_plugins.ml:129)
+==15416==    by 0x998535: camlBap_plugins__fun_10044 (bap_plugins.ml:177)
+==15416== 
+==15416== 13,308,296 bytes in 7 blocks are possibly lost in loss record 189 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD866EB: expand_heap (memory.c:367)
+==15416==    by 0xD869CF: caml_alloc_shr_aux (memory.c:473)
+==15416==    by 0xD869CF: caml_alloc_shr_no_track_noexc (memory.c:542)
+==15416==    by 0xD908CC: intern_alloc.part.0 (intern.c:638)
+==15416==    by 0xD90FDD: intern_alloc (intern.c:607)
+==15416==    by 0xD90FDD: input_val_from_block (intern.c:853)
+==15416==    by 0xD90FDD: caml_input_value_from_block (intern.c:880)
+==15416==    by 0xD9BEB3: caml_natdynlink_open (dynlink_nat.c:88)
+==15416==    by 0xA73B7F: camlDynlink__load_646 (dynlink.ml:94)
+==15416==    by 0xA72984: camlDynlink_common__load_1772 (dynlink_common.ml:329)
+==15416==    by 0x997C14: camlBap_plugins__load_unit_4859 (bap_plugins.ml:79)
+==15416==    by 0x997F3E: camlBap_plugins__load_entry_inner_9908 (bap_plugins.ml:129)
+==15416==    by 0x99820E: camlBap_plugins__fun_9957 (bap_plugins.ml:155)
+==15416== 
+==15416== 536,875,064 bytes in 1 blocks are possibly lost in loss record 192 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD866EB: expand_heap (memory.c:367)
+==15416==    by 0xD86BB7: caml_alloc_shr_aux (memory.c:473)
+==15416==    by 0xD86BB7: caml_alloc_shr_with_profinfo (memory.c:526)
+==15416==    by 0xD86BB7: caml_alloc_shr (memory.c:537)
+==15416==    by 0xD87154: caml_alloc_string (alloc.c:88)
+==15416==    by 0xD196E2: camlStdlib__Buffer__create_272 (buffer.ml:34)
+==15416==    by 0xC24001: camlStdio__In_channel__input_all_1271 (in_channel.ml:42)
+==15416==    by 0xC62E0C: camlBase__Exn__protectx_1498 (exn.ml:66)
+==15416==    by 0xA246E31: camlBap_primus_lisp_source__load_5205 (in_channel.ml:91)
+==15416==    by 0xA270B80: camlBap_primus_lisp_parse__load_tree_8670 (bap_primus_lisp_parse.ml:637)
+==15416==    by 0xCB8A75: camlBase__Map__fold_3373 (map.ml:838)
+==15416==    by 0xCB8A5C: camlBase__Map__fold_3373 (map.ml:838)
+==15416== 
+==15416== 536,875,064 bytes in 1 blocks are possibly lost in loss record 193 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD866EB: expand_heap (memory.c:367)
+==15416==    by 0xD86ABF: caml_alloc_shr_aux (memory.c:473)
+==15416==    by 0xD86ABF: caml_alloc_shr_for_minor_gc (memory.c:532)
+==15416==    by 0xD850FE: caml_oldify_one (minor_gc.c:209)
+==15416==    by 0xD852CC: caml_oldify_mopup (minor_gc.c:319)
+==15416==    by 0xD854C7: caml_empty_minor_heap (minor_gc.c:377)
+==15416==    by 0xD859F7: caml_gc_dispatch (minor_gc.c:492)
+==15416==    by 0xD85B35: caml_alloc_small_dispatch (minor_gc.c:539)
+==15416==    by 0xDA176D: caml_call_gc (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD3E66E: camlStdlib__Format__fprintf_1781 (format.ml:1365)
+==15416==    by 0x7B1775: camlBap_bitvector__print_5008 (bap_bitvector.ml:207)
+==15416== 
+==15416== 536,875,064 bytes in 1 blocks are possibly lost in loss record 194 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD866EB: expand_heap (memory.c:367)
+==15416==    by 0xD86ABF: caml_alloc_shr_aux (memory.c:473)
+==15416==    by 0xD86ABF: caml_alloc_shr_for_minor_gc (memory.c:532)
+==15416==    by 0xD850FE: caml_oldify_one (minor_gc.c:209)
+==15416==    by 0xD8539F: caml_oldify_mopup (minor_gc.c:314)
+==15416==    by 0xD854C7: caml_empty_minor_heap (minor_gc.c:377)
+==15416==    by 0xD859F7: caml_gc_dispatch (minor_gc.c:492)
+==15416==    by 0xD85B35: caml_alloc_small_dispatch (minor_gc.c:539)
+==15416==    by 0xDA176D: caml_call_gc (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xCB50C4: camlBase__Map__create_2214 (map.ml:108)
+==15416==    by 0xCB83A6: camlBase__Map__update_core_3280 (map.ml:755)
+==15416== 
+==15416== 1,073,750,128 bytes in 2 blocks are possibly lost in loss record 195 of 195
+==15416==    at 0x4C330B5: malloc (vg_replace_malloc.c:431)
+==15416==    by 0xD860B9: caml_stat_alloc_aligned_noexc (memory.c:763)
+==15416==    by 0xD860B9: caml_alloc_for_heap (memory.c:272)
+==15416==    by 0xD866EB: expand_heap (memory.c:367)
+==15416==    by 0xD86ABF: caml_alloc_shr_aux (memory.c:473)
+==15416==    by 0xD86ABF: caml_alloc_shr_for_minor_gc (memory.c:532)
+==15416==    by 0xD850FE: caml_oldify_one (minor_gc.c:209)
+==15416==    by 0xD852CC: caml_oldify_mopup (minor_gc.c:319)
+==15416==    by 0xD854C7: caml_empty_minor_heap (minor_gc.c:377)
+==15416==    by 0xD859F7: caml_gc_dispatch (minor_gc.c:492)
+==15416==    by 0xD85B35: caml_alloc_small_dispatch (minor_gc.c:539)
+==15416==    by 0xDA176D: caml_call_gc (in /home/docker/.opam/4.14.0/bin/bap)
+==15416==    by 0xD3AD77: camlStdlib__Format__enqueue_string_as_682 (format.ml:450)
+==15416==    by 0xD3E589: camlStdlib__Format__fun_2958 (format.ml:1356)
+==15416== 
+==15416== LEAK SUMMARY:
+==15416==    definitely lost: 37 bytes in 1 blocks
+==15416==    indirectly lost: 0 bytes in 0 blocks
+==15416==      possibly lost: 2,704,315,633 bytes in 28 blocks
+==15416==    still reachable: 47,296,423 bytes in 4,371 blocks
+==15416==         suppressed: 0 bytes in 0 blocks
+==15416== Reachable blocks (those to which a pointer was found) are not shown.
+==15416== To see them, rerun with: --leak-check=full --show-leak-kinds=all
+==15416== 
+==15416== Use --track-origins=yes to see where uninitialised values come from
+==15416== For lists of detected and suppressed errors, rerun with: -s
+==15416== ERROR SUMMARY: 22 errors from 21 contexts (suppressed: 0 from 0)
+
+
+
