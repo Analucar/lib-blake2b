@@ -1,0 +1,32 @@
+BLAKE2b
+------------------------------------------------------------------------------
+
+(spectre-path (0xFED:63u#66997 (23 (S3 (cond 1a09) (load 1aff) (last 1ca2)))))
+(spectre-path (0x65:63u#12804 (21 (S3 (cond 1c79) (load 1aff) (last 1ca2)))))
+#(spectre-path (0xFF5:63u#67081 (12 (S3 (cond 1b00) (load 1b11) (last 1b15)))))
+#(spectre-path (0xFE5:63u#66910 (11 (S3 (cond 1b4e) (load 1b70) (last 1b8a)))))
+#(spectre-path (0xFE5:63u#66910 (18 (S3 (cond 1b9d) (load 1b70) (last 1b8a)))))
+#(spectre-path (0x12:63u#10333 (15 (S3 (cond 1af4) (load 1ac7) (last 1ae4)))))
+(spectre-path (0x14:63u#10546 (22 (S3 (cond 19d6) (load 1aff) (last 19f4)))))
+(spectre-path (0x35:63u#11746 (56 (S3 (cond 18ec) (load 1aff) (last 19f4)))))
+(spectre-path (0x14:63u#10546 (24 (S3 (cond 19cf) (load 1aff) (last 19f4)))))
+(spectre-path (0x35:63u#11746 (54 (S3 (cond 18f3) (load 1aff) (last 19f4)))))
+(spectre-path (0x65:63u#12804 (48 (S3 (cond 1941) (load 1aff) (last 19f4)))))
+(spectre-path (0x14:63u#10546 (52 (S3 (cond 18fa) (load 1aff) (last 19f4)))))
+
+-----------------------------------------------------------------------------
+
+(incident (spectre-pattern 0 1120 1268 1297))
+(incident (spectre-pattern 0 1122 1268 1300))
+(incident (spectre-pattern 0 1293 1308 1310))
+(incident (spectre-pattern 0 1312 1346 1347))
+(incident (spectre-pattern 0 1365 1397 1398))
+(incident (spectre-pattern 0 3684 3721 3724))
+(incident (spectre-pattern 0 4429 5007 5117))
+(incident (spectre-pattern 0 13 5007 5128))
+(incident (spectre-pattern 0 1117 5007 5137))
+(incident (spectre-pattern 0 15 5007 5144))
+(incident (spectre-pattern 0 1045 5007 5149))
+(incident (spectre-pattern 0 17 5007 5152))
+
+------------------------------------------------------------------------------
