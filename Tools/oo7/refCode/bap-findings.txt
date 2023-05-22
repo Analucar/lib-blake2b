@@ -3,8 +3,8 @@ BLAKE2b
 
 (spectre-path (0xFED:63u#66997 (23 (S3 (cond 1a09) (load 1aff) (last 1ca2)))))
 (spectre-path (0x65:63u#12804 (21 (S3 (cond 1c79) (load 1aff) (last 1ca2)))))
-#(spectre-path (0xFF5:63u#67081 (12 (S3 (cond 1b00) (load 1b11) (last 1b15)))))
-#(spectre-path (0xFE5:63u#66910 (11 (S3 (cond 1b4e) (load 1b70) (last 1b8a)))))
+(spectre-path (0xFF5:63u#67081 (12 (S3 (cond 1b00) (load 1b11) (last 1b15)))))
+(spectre-path (0xFE5:63u#66910 (11 (S3 (cond 1b4e) (load 1b70) (last 1b8a)))))
 #(spectre-path (0xFE5:63u#66910 (18 (S3 (cond 1b9d) (load 1b70) (last 1b8a)))))
 #(spectre-path (0x12:63u#10333 (15 (S3 (cond 1af4) (load 1ac7) (last 1ae4)))))
 (spectre-path (0x14:63u#10546 (22 (S3 (cond 19d6) (load 1aff) (last 19f4)))))

@@ -465,6 +465,7 @@ export fn blake2b(#transient reg u64 in inlen, reg u64 out outlen , reg u64 key 
 
 	outlenCpy = outlen;
 
+	/*  _ = #init_msf(); */
 	h,t = init(outlenCpy, keylen, key, inlen);
 
 	h = update(in, inlen, h, t);
