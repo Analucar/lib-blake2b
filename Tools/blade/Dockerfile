@@ -12,10 +12,11 @@ WORKDIR /home/docker
 
 USER root
 RUN apt-get update
-RUN apt-get -y install software-properties-common
 RUN apt-get -y install build-essential
+RUN apt-get -y install software-properties-common
+RUN apt-get -y install zip
 RUN apt-get -y install wget
-RUN DEBIAN_FRONTEND=noninteractive apt-get -yq install git-all
+RUN apt-get -y install git
 RUN apt-get -y install cmake
 RUN apt-get -y install clang
 RUN apt-get -y install python
@@ -37,8 +38,8 @@ WORKDIR /home/docker/lucet-blade
 RUN git submodule update --init --recursive
 
 WORKDIR /home/docker/wasi-sdk
-RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-14/wasi-sdk-14.0-linux.tar.gz
-RUN tar xvf wasi-sdk-14.0-linux.tar.gz
+RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-12/wasi-sdk-14.0-linux.tar.gz
+RUN tar xvf wasi-sdk-12.0-linux.tar.gz
 
 WORKDIR /home/docker/wabt
 RUN git submodule update --init
