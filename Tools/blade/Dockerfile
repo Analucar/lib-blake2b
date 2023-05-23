@@ -38,8 +38,8 @@ WORKDIR /home/docker/lucet-blade
 RUN git submodule update --init --recursive
 
 WORKDIR /home/docker/wasi-sdk
-RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-14/wasi-sdk-14.0-linux.tar.gz
-RUN tar xvf wasi-sdk-14.0-linux.tar.gz
+RUN wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-12/wasi-sdk-12.0-linux.tar.gz
+RUN tar xvf wasi-sdk-12.0-linux.tar.gz
 
 WORKDIR /home/docker/wabt
 RUN git submodule update --init

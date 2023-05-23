@@ -1,0 +1,6 @@
+jasminc -pasm Blake2b.jazz | grep -o -E "%r[0-9]+" | sort -u
+
+jasminc -pasm Blake2b.jazz | less
+
+jasminc -pasm Blake2b.jazz
+
