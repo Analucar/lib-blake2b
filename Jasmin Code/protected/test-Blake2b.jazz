@@ -13,24 +13,6 @@ inline fn addFullBlock(reg u64 input) -> stack u64[16] {
 	return buffer;  //Full tested and Correct
 }
 
-/*-----Updates Buffer-----*/
-inline fn addFullBlock1(reg u64 input, #msf reg u64 ms) -> stack u64[16], #msf reg u64{
-	reg u64 i temp;
-	stack u64[16] buffer;
-	reg bool b;
-	i=0;
-
-	while {b = ( i < 16) ; } (b) {
-
-		ms = #set_msf(b,ms);
-		temp = [input + i*8];
-		buffer[(int) i]= temp; 
-		i += 1;
-	}
-	ms = #set_msf(!b,ms);
-	return buffer, ms;  //Full tested and Correct
-}
-
 
 inline fn addLastBlock(reg u64 input inlen) -> stack u64[16] {
 	reg u64 i i8 counter temp mask; 
@@ -415,51 +397,40 @@ inline fn init(reg u64 outlen keylen key inlen) -> stack u64[8], stack u64[2] {
 }
 
 
-inline fn update( reg u64 input inlen,  stack u64[8] h, stack u64[2] t) -> stack u64[8] {
-	stack u64[16] buffer;
-	reg u64 sum_t;
-	stack u64 inlen_s;
-	#msf reg u64 ms;
-	reg bool b;
+inline fn update( reg u64 input inlen, stack u64[8] h, stack u64[2] t) -> stack u64[8] {
+    stack u64[16] buffer;
+    reg u64 sum_t;
+    stack u64 inlen_s;
+    reg bool b;
 
-	ms = #init_msf();
+    while(inlen >= 128){
 
-	while  { b = (inlen >= 128); } (b) {
+        inlen_s = inlen;
+        buffer = addFullBlock(input);
+       
+        inlen -= 128;
+        input += 128;
+    
+    	t[0] += 128;
+      
+        if(inlen == 0) { //last block
+            h = compression(buffer,h,t,1);       
+        }
+        else{ //not the last block
+            h = compression(buffer,h,t,0);
+        }
 
-		ms = #set_msf(b, ms);
-
-		inlen_s = inlen;
-		buffer, ms = addFullBlock1(input, ms);
-		
-		inlen -= 128;
-		input += 128;
-		
-		t[0] += 128; // Add to t[0] the number of bytes read : 16 * 8 bytes [ 8 bytes == 64 bits ] = 128;
-		
-		/*
-		if(inlen == 0) { //last block
-			h = compression(buffer,h,t,1);		
-		}
-		else{ //not the last block
-			h = compression(buffer,h,t,0);
-		}
-		*/
-
-		inlen = inlen_s;
-	}
-
-	ms = #set_msf(!b, ms);
-	inlen = #protect(inlen, ms);
-
-	if(inlen > 0) { //some remain bytes
-		sum_t = inlen;
-		buffer = addLastBlock(input, inlen);
-		t[0] += sum_t; // Add to t[0] the remaining bytes;
-		
-		h  = compression (buffer,h,t,1);
-	}
-	
-	return h;
+        inlen = inlen_s;
+    }
+ 
+    if(inlen > 0) { //some remain bytes
+        sum_t = inlen;
+        buffer = addLastBlock(input, inlen);
+        t[0] += sum_t; // Add to t[0] the remaining bytes;
+       
+        h  = compression (buffer,h,t,1);
+    }
+    return h;
 }
 
 

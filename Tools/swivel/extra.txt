@@ -1,0 +1,4 @@
+WORKDIR /home/docker/swivel
+RUN make bootstrap
+RUN source ~/.profile
+RUN make build

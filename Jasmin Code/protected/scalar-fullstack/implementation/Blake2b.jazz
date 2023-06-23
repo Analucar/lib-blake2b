@@ -13,7 +13,6 @@ inline fn addFullBlock(reg u64 input) -> stack u64[16] {
 	return buffer;  //Full tested and Correct
 }
 
-
 inline fn addLastBlock(reg u64 input inlen) -> stack u64[16] {
 	reg u64 i i8 counter temp mask; 
 	reg u8 temp_u8;
@@ -55,7 +54,6 @@ inline fn addLastBlock(reg u64 input inlen) -> stack u64[16] {
 	
 	return buffer;
 }
-
 /*-----Updates Buffer-----*/
 
 
@@ -91,7 +89,6 @@ inline fn array_v(stack u64[8] h, stack u64[2] t, inline int last) -> stack u64[
 
 	return v;
 }
-
 /*-----UPDATE V-----*/
 
 
@@ -128,7 +125,6 @@ inline fn doubleG(stack u64[16] v, inline int a0 b0 c0 d0, reg u64 x0 y0, inline
 
 	return v;
 }
-
 
 /* Compressions */
 inline fn compressMix(stack u64[16] buffer , stack u64[16]v ) -> stack u64[16] {
@@ -306,7 +302,6 @@ inline fn compressMix(stack u64[16] buffer , stack u64[16]v ) -> stack u64[16] {
 	return v;
 }
 
-
 inline fn compression(stack u64[16] buffer, stack u64[8] h, stack u64[2] t, inline int last) -> stack u64[8] {
 	stack u64[16] v;
 	reg u64[8] rh;
@@ -326,26 +321,6 @@ inline fn compression(stack u64[16] buffer, stack u64[8] h, stack u64[2] t, inli
 
 	return h;
 }
-
-/*
-inline fn updateKey( reg u64 key keylen inlen, stack u64[8] h, stack u64[2] t) -> stack u64[8] {
-	stack u64[16] buffer;
-
-	if(keylen > 0) { //some remain bytes
-		buffer = addLastBlock(key, keylen);
-		
-		if(inlen == 0){
-			h  = compression(buffer,h,t,1);
-		}
-		else{
-			h = compression(buffer,h,t,0);
-		}
-
-	}
-	
-	return h;
-}
-*/
 
 /*  Initialize arrays ** h ** and ** t **  */
 inline fn init(reg u64 outlen keylen key inlen) -> stack u64[8], stack u64[2] {
@@ -370,8 +345,7 @@ inline fn init(reg u64 outlen keylen key inlen) -> stack u64[8], stack u64[2] {
 	h0_xor ^= outlen; 
  
 	h[0] ^= h0_xor; 
-
-	_ = #init_msf();					  
+					  
 	if (keylen > 0 ){
 		t[0] = 128; 
 		t[1] = 0;	
@@ -395,12 +369,10 @@ inline fn init(reg u64 outlen keylen key inlen) -> stack u64[8], stack u64[2] {
 	return h, t;
 }
 
-
 inline fn update( reg u64 input inlen,  stack u64[8] h, stack u64[2] t) -> stack u64[8] {
 	stack u64[16] buffer;
 	reg u64 sum_t;
 
-	_ = #init_msf();
 	while(inlen >= 128) { //blocks multiple of 16
 		buffer= addFullBlock(input);
 		
@@ -428,13 +400,11 @@ inline fn update( reg u64 input inlen,  stack u64[8] h, stack u64[2] t) -> stack
 	return h;
 }
 
-
 inline fn final(reg u64 out outlen, stack u64[8] h) {
 	reg u64 x y h_x i;
 	
 	i = 0;
 
-	_ = #init_msf();
 	while(i < outlen) {
 		x = i;
 		
@@ -455,19 +425,18 @@ inline fn final(reg u64 out outlen, stack u64[8] h) {
 		i+=1;
 	}
 }
-
 /*-----BLAKE FUNCTIONS-----*/
-
 
 export fn blake2b(#transient reg u64 in inlen, reg u64 out outlen , reg u64 key keylen) {
 
 	reg u64 outlenCpy;
 	stack u64[8] h; 
-
 	stack u64[2] t;
+	#msf reg u64 ms;
 
 	outlenCpy = outlen;
 
+	_ = #init_msf();
 	h,t = init(outlenCpy, keylen, key, inlen);
 
 	h = update(in, inlen, h, t);
