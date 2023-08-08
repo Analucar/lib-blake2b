@@ -1,0 +1,102 @@
+slh_no_v1_1.so:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+00000000000004b0 <guest_func_victim_fun>:
+ 4b0:	55                   	push   %rbp
+ 4b1:	48 89 e5             	mov    %rsp,%rbp
+ 4b4:	53                   	push   %rbx
+ 4b5:	b8 00 04 00 00       	mov    $0x400,%eax
+ 4ba:	89 c0                	mov    %eax,%eax
+ 4bc:	8b 04 07             	mov    (%rdi,%rax,1),%eax
+ 4bf:	39 f0                	cmp    %esi,%eax
+ 4c1:	76 5e                	jbe    521 <guest_func_victim_fun+0x71>
+ 4c3:	b8 10 04 00 00       	mov    $0x410,%eax
+ 4c8:	89 c0                	mov    %eax,%eax
+ 4ca:	0f b6 0c 07          	movzbl (%rdi,%rax,1),%ecx
+ 4ce:	81 c6 20 04 02 00    	add    $0x20420,%esi
+ 4d4:	89 f2                	mov    %esi,%edx
+ 4d6:	48 89 fb             	mov    %rdi,%rbx
+ 4d9:	48 81 c3 29 09 00 00 	add    $0x929,%rbx
+ 4e0:	31 f6                	xor    %esi,%esi
+ 4e2:	49 c7 c0 ff ff ff ff 	mov    $0xffffffffffffffff,%r8
+ 4e9:	48 39 ff             	cmp    %rdi,%rdi
+ 4ec:	49 89 f1             	mov    %rsi,%r9
+ 4ef:	4d 0f 43 c8          	cmovae %r8,%r9
+ 4f3:	41 b8 04 00 00 00    	mov    $0x4,%r8d
+ 4f9:	4c 29 c3             	sub    %r8,%rbx
+ 4fc:	48 39 df             	cmp    %rbx,%rdi
+ 4ff:	49 0f 46 f1          	cmovbe %r9,%rsi
+ 503:	48 89 fb             	mov    %rdi,%rbx
+ 506:	48 21 f3             	and    %rsi,%rbx
+ 509:	0f b6 14 13          	movzbl (%rbx,%rdx,1),%edx
+ 50d:	c1 e2 09             	shl    $0x9,%edx
+ 510:	81 c2 20 04 00 00    	add    $0x420,%edx
+ 516:	89 d2                	mov    %edx,%edx
+ 518:	0f b6 14 17          	movzbl (%rdi,%rdx,1),%edx
+ 51c:	21 d1                	and    %edx,%ecx
+ 51e:	88 0c 07             	mov    %cl,(%rdi,%rax,1)
+ 521:	5b                   	pop    %rbx
+ 522:	5d                   	pop    %rbp
+ 523:	c3                   	retq   
+	...
+
+0000000000000530 <guest_func___main_argc_argv>:
+ 530:	55                   	push   %rbp
+ 531:	48 89 e5             	mov    %rsp,%rbp
+ 534:	53                   	push   %rbx
+ 535:	b8 00 04 00 00       	mov    $0x400,%eax
+ 53a:	89 c0                	mov    %eax,%eax
+ 53c:	8b 04 07             	mov    (%rdi,%rax,1),%eax
+ 53f:	39 f0                	cmp    %esi,%eax
+ 541:	76 5e                	jbe    5a1 <guest_func___main_argc_argv+0x71>
+ 543:	b8 10 04 00 00       	mov    $0x410,%eax
+ 548:	89 c0                	mov    %eax,%eax
+ 54a:	0f b6 0c 07          	movzbl (%rdi,%rax,1),%ecx
+ 54e:	81 c6 20 04 02 00    	add    $0x20420,%esi
+ 554:	89 f2                	mov    %esi,%edx
+ 556:	48 89 fb             	mov    %rdi,%rbx
+ 559:	48 81 c3 29 09 00 00 	add    $0x929,%rbx
+ 560:	31 f6                	xor    %esi,%esi
+ 562:	49 c7 c0 ff ff ff ff 	mov    $0xffffffffffffffff,%r8
+ 569:	48 39 ff             	cmp    %rdi,%rdi
+ 56c:	49 89 f1             	mov    %rsi,%r9
+ 56f:	4d 0f 43 c8          	cmovae %r8,%r9
+ 573:	41 b8 04 00 00 00    	mov    $0x4,%r8d
+ 579:	4c 29 c3             	sub    %r8,%rbx
+ 57c:	48 39 df             	cmp    %rbx,%rdi
+ 57f:	49 0f 46 f1          	cmovbe %r9,%rsi
+ 583:	48 89 fb             	mov    %rdi,%rbx
+ 586:	48 21 f3             	and    %rsi,%rbx
+ 589:	0f b6 14 13          	movzbl (%rbx,%rdx,1),%edx
+ 58d:	c1 e2 09             	shl    $0x9,%edx
+ 590:	81 c2 20 04 00 00    	add    $0x420,%edx
+ 596:	89 d2                	mov    %edx,%edx
+ 598:	0f b6 14 17          	movzbl (%rdi,%rdx,1),%edx
+ 59c:	21 d1                	and    %edx,%ecx
+ 59e:	88 0c 07             	mov    %cl,(%rdi,%rax,1)
+ 5a1:	31 c0                	xor    %eax,%eax
+ 5a3:	5b                   	pop    %rbx
+ 5a4:	5d                   	pop    %rbp
+ 5a5:	c3                   	retq   
+	...
+
+00000000000005b0 <guest_func___wasm_call_ctors>:
+ 5b0:	55                   	push   %rbp
+ 5b1:	48 89 e5             	mov    %rsp,%rbp
+ 5b4:	5d                   	pop    %rbp
+ 5b5:	c3                   	retq   
+	...
+
+00000000000005c0 <lucet_probestack>:
+ 5c0:	49 89 c3             	mov    %rax,%r11
+ 5c3:	48 81 ec 00 10 00 00 	sub    $0x1000,%rsp
+ 5ca:	48 85 64 24 08       	test   %rsp,0x8(%rsp)
+ 5cf:	49 81 eb 00 10 00 00 	sub    $0x1000,%r11
+ 5d6:	49 81 fb 00 10 00 00 	cmp    $0x1000,%r11
+ 5dd:	77 e4                	ja     5c3 <lucet_probestack+0x3>
+ 5df:	4c 29 dc             	sub    %r11,%rsp
+ 5e2:	48 85 64 24 08       	test   %rsp,0x8(%rsp)
+ 5e7:	48 01 c4             	add    %rax,%rsp
+ 5ea:	c3                   	retq  

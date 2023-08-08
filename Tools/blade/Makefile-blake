@@ -1,0 +1,71 @@
+LUCET_BLADE=$(HOME)/lucet-blade
+WASI_SDK=$(HOME)/wasi-sdk
+WABT=$(HOME)/wabt
+BINARYEN=$(HOME)/binaryen
+HACL_STAR=$(HOME)/hacl-star
+
+LUCETC=$(LUCET_BLADE)/target/debug/lucetc
+LUCETC_FLAGS=--emit=so --guard-size "4GiB" --min-reserved-size "4GiB" --max-reserved-size "4GiB"
+WASI_CLANG=$(WASI_SDK)/wasi-sdk-12.0/bin/clang
+WASI_CLANG_FLAGS=-O3 --sysroot=$(WASI_SDK)/wasi-sdk-12.0/share/wasi-sysroot
+WASI_LINK_FLAGS=-nostartfiles -Wl,--no-entry -Wl,--export-all
+WAT2WASM=$(WABT)/out/clang/Debug/wat2wasm
+WASM2WAT=$(WABT)/out/clang/Debug/wasm2wat
+WASM_OPT=$(BINARYEN)/bin/wasm-opt
+HACL_FLAGS=-I$(HACL_STAR)/dist/kremlin/include -I$(HACL_STAR)/dist/kremlin/kremlib/dist/minimal
+
+.DEFAULT_GOAL=build
+
+FORCE:
+$(LUCETC): FORCE
+	cd $(LUCET_BLADE) && cargo build
+
+wasm_src/%.wasm.unopt: c_code/%.c
+	$(WASI_CLANG) $(WASI_CLANG_FLAGS) $(HACL_FLAGS) $< -o $@ $(WASI_LINK_FLAGS)
+	
+wasm_src/%.wasm: wasm_src/%.wasm.unopt
+	$(WASM_OPT) -mvp --disable-mutable-globals -O4 $< -o $@
+
+wasm_src/%.wasm: wasm_src/%.wat
+	$(WAT2WASM) $< -o $@
+
+wasm_wat/%.wat: wasm_src/%.wasm
+	mkdir -p wasm_wat
+	$(WASM2WAT) $< -o $@
+
+wasm_obj/%/ref.so: wasm_src/%.wasm $(LUCETC)
+	mkdir -p wasm_obj/$*
+	$(LUCETC) $(LUCETC_FLAGS) --blade-type=none $< -o $@
+
+wasm_obj/%/lfence_with_v1_1.so: wasm_src/%.wasm $(LUCETC)
+	mkdir -p wasm_obj/$*
+	$(LUCETC) $(LUCETC_FLAGS) --blade-type=lfence --blade-v1-1 $< -o $@
+
+wasm_obj/%/lfence_no_v1_1.so: wasm_src/%.wasm $(LUCETC)
+	mkdir -p wasm_obj/$*
+	$(LUCETC) $(LUCETC_FLAGS) --blade-type=lfence $< -o $@
+
+wasm_obj/%/slh_with_v1_1.so: wasm_src/%.wasm $(LUCETC)
+	mkdir -p wasm_obj/$*
+	$(LUCETC) $(LUCETC_FLAGS) --blade-type=slh --blade-v1-1 $< -o $@
+
+wasm_obj/%/slh_no_v1_1.so: wasm_src/%.wasm $(LUCETC)
+	mkdir -p wasm_obj/$*
+	$(LUCETC) $(LUCETC_FLAGS) --blade-type=slh --blade-v1-1 $< -o $@
+
+all_spectre: spectre_unopt spectre_wasm spectre_so
+
+spectre_wasm: \
+	wasm_src/blake.wasm
+
+spectre_so: \
+	wasm_obj/blake/ref.so \
+	wasm_obj/blake/lfence_with_v1_1.so \
+	wasm_obj/blake/lfence_no_v1_1.so \
+	wasm_obj/blake/slh_with_v1_1.so \
+	wasm_obj/blake/slh_no_v1_1.so \
+
+target/debug/spectre: all_spectre
+	cargo build
+
+build: target/debug/spectre
