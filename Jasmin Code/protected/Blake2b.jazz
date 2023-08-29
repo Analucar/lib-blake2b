@@ -371,8 +371,6 @@ inline fn init(reg u64 outlen keylen key inlen) -> stack u64[8], stack u64[2] {
  
 	h[0] ^= h0_xor;
 
-	/*keylen_s = #MOV_64(keylen);
-	keylen = #MOV_64(keylen_s);*/
 	if (keylen > 0 ){
 		t[0] = 128; 
 		t[1] = 0;	
@@ -405,7 +403,6 @@ inline fn update( reg u64 input inlen, stack u64[8] h, stack u64[2] t) -> stack 
 
     while(inlen >= 128){
 
-        inlen_s = inlen;
         buffer = addFullBlock(input);
        
         inlen -= 128;
@@ -419,8 +416,6 @@ inline fn update( reg u64 input inlen, stack u64[8] h, stack u64[2] t) -> stack 
         else{ //not the last block
             h = compression(buffer,h,t,0);
         }
-
-        inlen = inlen_s;
     }
  
     if(inlen > 0) { //some remain bytes
@@ -463,7 +458,7 @@ inline fn final(reg u64 out outlen, stack u64[8] h) {
 /*-----BLAKE FUNCTIONS-----*/
 
 
-export fn blake2b__(reg u64 in, reg u64 inlen, reg u64 out outlen , reg u64 key, reg u64 keylen) {
+export fn blake2b(reg u64 in, reg u64 inlen, reg u64 out outlen , reg u64 key, reg u64 keylen) {
 
 	reg u64 outlenCpy;
 	#msf reg u64 ms;

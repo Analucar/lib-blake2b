@@ -55,6 +55,9 @@ wasm_obj/%/slh_no_v1_1.so: wasm_src/%.wasm $(LUCETC)
 
 all_spectre: spectre_unopt spectre_wasm spectre_so
 
+spectre_unopt: \
+	wasm_src/blake.wasm.unopt
+
 spectre_wasm: \
 	wasm_src/blake.wasm
 
@@ -69,3 +72,22 @@ target/debug/spectre: all_spectre
 	cargo build
 
 build: target/debug/spectre
+
+wasm: wasm_wat/blake.wat
+
+target/debug/blade-benchmarks: all_spectre
+	cargo build
+
+bench: target/debug/blade-benchmarks
+	cargo bench
+
+report:
+	cd analysis && cargo run && python3 ./sha256_scaling_plots.py
+
+obj_clean:
+	-rm -rf wasm_obj
+
+clean: obj_clean
+	cargo clean
+	cd analysis && cargo clean
+

@@ -13,22 +13,6 @@ typedef struct {
     size_t outlen;  // digest size   
 } blake2b_ctx;
 
-/* Necessary to blake2b_long */
-static void store32(void *dst, uint32_t w) {
-    #if defined(NATIVE_LITTLE_ENDIAN)
-        memcpy(dst, &w, sizeof w);
-    #else
-        uint8_t *p = (uint8_t *)dst;
-        *p++ = (uint8_t)w;
-        w >>= 8;
-        *p++ = (uint8_t)w;
-        w >>= 8;
-        *p++ = (uint8_t)w;
-        w >>= 8;
-        *p++ = (uint8_t)w;
-    #endif
-}
-
 #ifndef ROTR64   
 #define ROTR64(x, y)  ( ( (x) >> (y) ) ^ ( (x) << (64 - (y)) ))   
 #endif
@@ -196,66 +180,6 @@ int blake2b(void *out, size_t outlen, const void *key, size_t keylen, const void
     blake2b_final(&ctx, out);
     return 0;   
 }
-
-
-int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen) {
-    uint8_t *out = (uint8_t *)pout;
-    blake2b_ctx blake_state;
-    uint8_t outlen_bytes[sizeof(uint32_t)] = {0};
-    int ret = -1;
-
-    if (outlen > UINT32_MAX) {
-        goto fail;
-    }
-
-    // Ensure little-endian byte order!
-    store32(outlen_bytes, (uint32_t)outlen);
-
-#define TRY(statement)                                                         \
-    do {                                                                       \
-        ret = statement;                                                       \
-        if (ret < 0) {                                                         \
-            goto fail;                                                         \
-        }                                                                      \
-    } while ((void)0, 0)
-
-    if (outlen <= 64) {
-        TRY(blake2b_init(&blake_state, outlen, NULL,0));
-        TRY(blake2b_update(&blake_state, outlen_bytes, sizeof(outlen_bytes)));
-        TRY(blake2b_update(&blake_state, in, inlen));
-        TRY(blake2b_final(&blake_state, out));
-    } else {
-        uint32_t toproduce;
-        uint8_t out_buffer[64];
-        uint8_t in_buffer[64];
-        TRY(blake2b_init(&blake_state, 64, NULL, 0));
-        TRY(blake2b_update(&blake_state, outlen_bytes, sizeof(outlen_bytes)));
-        TRY(blake2b_update(&blake_state, in, inlen));
-        TRY(blake2b_final(&blake_state, out_buffer));
-        memcpy(out, out_buffer, 64 / 2);
-        out += 64 / 2;
-        toproduce = (uint32_t)outlen - 64 / 2;
-
-        while (toproduce > 64) {
-            memcpy(in_buffer, out_buffer, 64);
-            TRY(blake2b(out_buffer, 64, NULL, 0, in_buffer, 64));
-            memcpy(out, out_buffer, 64 / 2);
-            out += 64 / 2;
-            toproduce -= 64 / 2;
-        }
-
-        memcpy(in_buffer, out_buffer, 64);
-        TRY(blake2b(out_buffer, toproduce, NULL, 0, in_buffer, 64));
-        memcpy(out, out_buffer, toproduce);
-    }
-    
-fail:
-    //clear_internal_memory(&blake_state, sizeof(blake_state));
-    return ret;
-    
-#undef TRY
-}
-
 
 int main(int argc, char *argv[]){
 

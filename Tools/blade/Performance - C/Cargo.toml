@@ -1,0 +1,19 @@
+[package]
+name = "blade-benchmarks"
+version = "0.1.0"
+authors = ["Craig Disselkoen <craigdissel@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lucet-runtime = { path = "../../lucet-blade/lucet-runtime" }
+hex = "0.4.2"
+
+[dev-dependencies]
+criterion = "0.3.3"
+hmac-sha256 = "0.1.2"
+
+[[bench]]
+name = "criteria_spectre"
+harness = false
