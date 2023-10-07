@@ -1,0 +1,76 @@
+lfence_with_v1_1.so:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+00000000000004b0 <guest_func_victim_fun>:
+ 4b0:	55                   	push   %rbp
+ 4b1:	48 89 e5             	mov    %rsp,%rbp
+ 4b4:	b8 00 04 00 00       	mov    $0x400,%eax
+ 4b9:	89 c0                	mov    %eax,%eax
+ 4bb:	8b 04 07             	mov    (%rdi,%rax,1),%eax
+ 4be:	39 f0                	cmp    %esi,%eax
+ 4c0:	0f ae e8             	lfence 
+ 4c3:	76 2e                	jbe    4f3 <guest_func_victim_fun+0x43>
+ 4c5:	b8 10 04 00 00       	mov    $0x410,%eax
+ 4ca:	89 c0                	mov    %eax,%eax
+ 4cc:	0f b6 0c 07          	movzbl (%rdi,%rax,1),%ecx
+ 4d0:	81 c6 20 04 02 00    	add    $0x20420,%esi
+ 4d6:	89 f2                	mov    %esi,%edx
+ 4d8:	0f b6 14 17          	movzbl (%rdi,%rdx,1),%edx
+ 4dc:	c1 e2 09             	shl    $0x9,%edx
+ 4df:	81 c2 20 04 00 00    	add    $0x420,%edx
+ 4e5:	89 d2                	mov    %edx,%edx
+ 4e7:	0f ae e8             	lfence 
+ 4ea:	0f b6 14 17          	movzbl (%rdi,%rdx,1),%edx
+ 4ee:	21 d1                	and    %edx,%ecx
+ 4f0:	88 0c 07             	mov    %cl,(%rdi,%rax,1)
+ 4f3:	5d                   	pop    %rbp
+ 4f4:	c3                   	retq   
+	...
+
+0000000000000500 <guest_func___main_argc_argv>:
+ 500:	55                   	push   %rbp
+ 501:	48 89 e5             	mov    %rsp,%rbp
+ 504:	b8 00 04 00 00       	mov    $0x400,%eax
+ 509:	89 c0                	mov    %eax,%eax
+ 50b:	8b 04 07             	mov    (%rdi,%rax,1),%eax
+ 50e:	39 f0                	cmp    %esi,%eax
+ 510:	0f ae e8             	lfence 
+ 513:	76 2e                	jbe    543 <guest_func___main_argc_argv+0x43>
+ 515:	b8 10 04 00 00       	mov    $0x410,%eax
+ 51a:	89 c0                	mov    %eax,%eax
+ 51c:	0f b6 0c 07          	movzbl (%rdi,%rax,1),%ecx
+ 520:	81 c6 20 04 02 00    	add    $0x20420,%esi
+ 526:	89 f2                	mov    %esi,%edx
+ 528:	0f b6 14 17          	movzbl (%rdi,%rdx,1),%edx
+ 52c:	c1 e2 09             	shl    $0x9,%edx
+ 52f:	81 c2 20 04 00 00    	add    $0x420,%edx
+ 535:	89 d2                	mov    %edx,%edx
+ 537:	0f ae e8             	lfence 
+ 53a:	0f b6 14 17          	movzbl (%rdi,%rdx,1),%edx
+ 53e:	21 d1                	and    %edx,%ecx
+ 540:	88 0c 07             	mov    %cl,(%rdi,%rax,1)
+ 543:	31 c0                	xor    %eax,%eax
+ 545:	5d                   	pop    %rbp
+ 546:	c3                   	retq   
+	...
+
+0000000000000550 <guest_func___wasm_call_ctors>:
+ 550:	55                   	push   %rbp
+ 551:	48 89 e5             	mov    %rsp,%rbp
+ 554:	5d                   	pop    %rbp
+ 555:	c3                   	retq   
+	...
+
+0000000000000560 <lucet_probestack>:
+ 560:	49 89 c3             	mov    %rax,%r11
+ 563:	48 81 ec 00 10 00 00 	sub    $0x1000,%rsp
+ 56a:	48 85 64 24 08       	test   %rsp,0x8(%rsp)
+ 56f:	49 81 eb 00 10 00 00 	sub    $0x1000,%r11
+ 576:	49 81 fb 00 10 00 00 	cmp    $0x1000,%r11
+ 57d:	77 e4                	ja     563 <lucet_probestack+0x3>
+ 57f:	4c 29 dc             	sub    %r11,%rsp
+ 582:	48 85 64 24 08       	test   %rsp,0x8(%rsp)
+ 587:	48 01 c4             	add    %rax,%rsp
+ 58a:	c3                   	retq   
